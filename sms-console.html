@@ -208,12 +208,26 @@
       <div class="field">
         <label class="lbl" for="provider">Provider</label>
         <select id="provider">
+          <option value="email">Email → SMS (mailto, koi key nahi)</option>
           <option value="twilio">Twilio trial — 100 free SMS (online route)</option>
           <option value="textbelt-free">Textbelt free key (1 msg/day)</option>
           <option value="textbelt-own">Textbelt — apna paid key</option>
           <option value="gateway">Own SIM gateway (Android)</option>
           <option value="fast2sms">Fast2SMS DLT (proxy chahiye)</option>
         </select>
+      </div>
+
+      <div class="hidden" id="f-email">
+        <div class="field">
+          <label class="lbl" for="maildomain">Gateway domain</label>
+          <input class="mono" type="text" id="maildomain" value="sms.textlocal.in" placeholder="sms.textlocal.in">
+          <p class="hint">Mail jayega: <code id="mailPreview">+91XXXXXXXXXX@sms.textlocal.in</code></p>
+        </div>
+        <p class="hint" style="margin-bottom:12px">
+          Ye mode aapke email app ko kholta hai, pre-filled message ke saath — koi API key nahi.
+          Textlocal/Sinch par free account banao aur apna <b>sender email register</b> karo, warna gateway mail reject karega.
+          Production SMS par India mein DLT lagu rehta hai.
+        </p>
       </div>
 
       <div class="actions" style="margin:0 0 16px">
@@ -315,7 +329,7 @@
   var providerEl=$('provider'), phoneEl=$('phone'), ccEl=$('cc'), msgEl=$('msg');
   var keyEl=$('apikey'), gwUrlEl=$('gwurl'), gwUserEl=$('gwuser'), gwPassEl=$('gwpass');
   var twSidEl=$('twsid'), twTokenEl=$('twtoken'), twFromEl=$('twfrom');
-  var f2sKeyEl=$('f2skey'), verifyBtn=$('verifyBtn');
+  var f2sKeyEl=$('f2skey'), verifyBtn=$('verifyBtn'), mailDomainEl=$('maildomain');
   var senderEl=$('sender'), f2sRouteEl=$('f2sroute'), tplEl=$('tplid'), varsEl=$('vars');
   var sendBtn=$('send'), refreshBtn=$('refresh'), spin=$('spin'), statusEl=$('status');
   var quotaPill=$('quotaPill'), urlWarn=$('urlWarn');
@@ -340,6 +354,7 @@
       if(s.twtoken) twTokenEl.value=s.twtoken;
       if(s.twfrom) twFromEl.value=s.twfrom;
       if(s.f2skey) f2sKeyEl.value=s.f2skey;
+      if(s.maildomain) mailDomainEl.value=s.maildomain;
       if(s.sender) senderEl.value=s.sender;
       if(s.f2sroute) f2sRouteEl.value=s.f2sroute;
       if(s.tplid) tplEl.value=s.tplid;
@@ -351,7 +366,7 @@
       localStorage.setItem(LS_SET, JSON.stringify({
         provider:providerEl.value, cc:ccEl.value, apikey:keyEl.value,
         gwurl:gwUrlEl.value, gwuser:gwUserEl.value, gwpass:gwPassEl.value,
-        twsid:twSidEl.value, twtoken:twTokenEl.value, twfrom:twFromEl.value, f2skey:f2sKeyEl.value,
+        twsid:twSidEl.value, twtoken:twTokenEl.value, twfrom:twFromEl.value, f2skey:f2sKeyEl.value, maildomain:mailDomainEl.value,
         sender:senderEl.value, f2sroute:f2sRouteEl.value, tplid:tplEl.value, vars:varsEl.value
       }));
     }catch(e){}
@@ -475,7 +490,7 @@
     var bar = $('envBar');
     if(PROXY === false){
       bar.className = 'envbar show';
-      bar.innerHTML = '<b>Local server nahi mila</b> — ye page static hosting par khula hai, ya aapka <code>server.js</code> band hai. Twilio / Fast2SMS / gateway modes tabhi chalte hain jab local server chale (API key server par rehti hai). Abhi sirf <b>Textbelt</b> mode chalega, aur wo India me unreliable hai. Fix: repo folder me <code>start.bat</code> (Windows) ya <code>./start.sh</code> chalao, phir <code>http://localhost:8000</code> kholo.';
+      bar.innerHTML = '<b>Local server nahi mila</b> — ye page static hosting par khula hai, ya <code>server.js</code> band hai. Twilio / Fast2SMS / gateway modes tabhi chalte hain jab local server chale. Yahan <b>Email → SMS</b> aur <b>Textbelt</b> modes chalenge. Twilio ke liye: repo folder me <code>start.bat</code> (Windows) ya <code>./start.sh</code> chalao, phir <code>http://localhost:8000</code> kholo.';
       if(PROXY_MODES.indexOf(providerEl.value) >= 0){ providerEl.value = 'textbelt-free'; syncProvider(); }
     }else if(PROXY === true){
       bar.className = 'envbar show ok';
@@ -487,6 +502,9 @@
   function syncProvider(){
     var p = providerEl.value;
     $('f-twilio').classList.toggle('hidden', p !== 'twilio');
+    $('f-email').classList.toggle('hidden', p !== 'email');
+    var md=(mailDomainEl.value||'sms.textlocal.in').trim().replace(/^@/,'');
+    $('mailPreview').textContent = fullNumber() + '@' + md;
     $('f-key').classList.toggle('hidden', p === 'textbelt-free' || p === 'gateway' || p === 'fast2sms' || p === 'twilio');
     $('f-gw').classList.toggle('hidden', p !== 'gateway');
     $('f-f2s').classList.toggle('hidden', p !== 'fast2sms');
@@ -495,7 +513,8 @@
     $('senderPreview').textContent='BP-'+(sid||'______')+'-S';
 
     var note=$('providerNote');
-    if(p === 'twilio') note.innerHTML='Twilio trial: 100 free SMS, 30 din, bina credit card. Message <b>online route se seedha SIM par</b> jata hai. Trial me sirf verified numbers par bhej sakte ho.';
+    if(p === 'email') note.innerHTML='Email → SMS: aapke Gmail/Outlook se mail jayega <code>number@domain</code> par, aur wo SMS ban jayega. Key nahi chahiye, par gateway par sender email registered hona chahiye.';
+    else if(p === 'twilio') note.innerHTML='Twilio trial: 100 free SMS, 30 din, bina credit card. Message <b>online route se seedha SIM par</b> jata hai. Trial me sirf verified numbers par bhej sakte ho.';
     else if(p === 'textbelt-free') note.innerHTML='Textbelt ka free key: din mein 1 SMS, IP-based, koi signup nahi. India me delivery reliable nahi hai.';
     else if(p === 'textbelt-own') note.innerHTML='Apna paid key — quota zyada, 100+ countries. Key browser me rehti hai, isliye public page par na daalo.';
     else if(p === 'gateway') note.innerHTML='Aapke phone ki SIM se SMS jayega — asli number, koi DLT nahi, koi quota nahi. Phone aur laptop ek hi Wi-Fi par hone chahiye.';
@@ -547,6 +566,11 @@
             body:{phone:num, message:text, key:currentKey()}};
   }
   function updatePreview(){
+    var mp=$('mailPreview');
+    if(mp){
+      var md=(mailDomainEl.value||'sms.textlocal.in').trim().replace(/^@/,'');
+      mp.textContent = fullNumber().replace(/^\+/,'') + '@' + md;
+    }
     var r=buildRequest();
     var b=Object.assign({}, r.body);
     if(b.key && b.key !== 'textbelt') b.key=String(b.key).slice(0,3)+'••••••';
@@ -628,6 +652,25 @@
       var sid=(senderEl.value||'').trim().toUpperCase();
       if(!/^[A-Z]{6}$/.test(sid)){ setStatus('err','Sender ID 6 letters ka hona chahiye (e.g. IXCDIS), aur DLT-approved.'); senderEl.focus(); return; }
       if(f2sRouteEl.value === 'dlt' && !(tplEl.value||'').trim()){ setStatus('err','DLT route ke liye template ID chahiye.'); tplEl.focus(); return; }
+    }
+
+    if(p === 'email'){
+      var md=(mailDomainEl.value||'sms.textlocal.in').trim().replace(/^@/,'');
+      if(!md || md.indexOf('.') < 0){
+        setStatus('err','Gateway domain galat hai — jaise sms.textlocal.in');
+        mailDomainEl.focus();
+        return;
+      }
+      var addr = num.replace(/^\+/,'') + '@' + md;
+      var href = 'mailto:' + addr + '?subject=' + encodeURIComponent('SMS') + '&body=' + encodeURIComponent(text);
+      try{
+        var a = document.createElement('a');
+        a.href = href; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+      }catch(e){ /* mail app na ho to user copy kar sakta hai */ }
+      setStatus('info','Email app khul gaya — mail bhejo, SMS ban ke jayega.<pre>To: '+esc(addr)+'\nSubject: SMS\nBody: '+esc(text)+'</pre>');
+      addHist({to:addr, msg:text.slice(0,120), at:Date.now(), ok:true});
+      return;
     }
 
     var req=buildRequest(), headers=Object.assign({},req.headers);
@@ -716,7 +759,7 @@
   /* ---------------- wiring ---------------- */
   providerEl.addEventListener('change', syncProvider);
   f2sRouteEl.addEventListener('change', syncProvider);
-  [keyEl,gwUrlEl,gwUserEl,gwPassEl,phoneEl,ccEl,senderEl,tplEl,varsEl,twSidEl,twTokenEl,twFromEl,f2sKeyEl].forEach(function(el){
+  [keyEl,gwUrlEl,gwUserEl,gwPassEl,phoneEl,ccEl,senderEl,tplEl,varsEl,twSidEl,twTokenEl,twFromEl,f2sKeyEl,mailDomainEl].forEach(function(el){
     el.addEventListener('input', function(){ updatePreview(); saveSettings(); });
   });
   msgEl.addEventListener('input', updateCounter);
