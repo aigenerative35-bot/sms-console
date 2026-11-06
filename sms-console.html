@@ -128,6 +128,11 @@
   .helpbox ol{margin:0 0 10px;padding-left:20px;font-size:.82rem;color:var(--text-dim)}
   .helpbox li{margin-bottom:6px}
   .helpbox p{margin:0 0 12px;font-size:.78rem;color:var(--text-faint);font-family:var(--font-mono)}
+  .envbar{display:none;margin-bottom:18px;padding:12px 15px;border-radius:10px;font-size:.83rem;line-height:1.5;
+    background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);overflow-wrap:anywhere}
+  .envbar.show{display:block}
+  .envbar.ok{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
+  .envbar code{background:rgba(0,0,0,.08);color:inherit}
   .hidden{display:none !important}
   .hint{font-size:.75rem;color:var(--text-faint);margin:6px 0 0;font-family:var(--font-mono);overflow-wrap:anywhere}
   code{font-family:var(--font-mono);font-size:.86em;background:var(--surface-3);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
@@ -150,6 +155,8 @@
     </div>
     <span class="quota-pill unknown" id="quotaPill">quota check ho raha hai…</span>
   </header>
+
+  <div class="envbar" id="envBar"></div>
 
   <section class="card">
     <div class="field">
@@ -431,6 +438,40 @@
     sendBtn.textContent = locked ? 'Aaj ka message bhej diya' : 'Send SMS';
   }
 
+  /* ---------------- proxy availability ---------------- */
+  var PROXY = null; // null = checking, true = local server mila, false = static hosting
+  var PROXY_MODES = ['twilio', 'fast2sms', 'gateway'];
+
+  function detectProxy(){
+    var host = location.hostname || '';
+    var staticHost = location.protocol === 'file:' ||
+      /(^|\.)github\.io$/i.test(host) || /(^|\.)netlify\.app$/i.test(host) || /(^|\.)vercel\.app$/i.test(host);
+    if(staticHost){ PROXY = false; onProxyState(); return; }
+    fetch('/api/ping', {cache:'no-store'})
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){ PROXY = !!(d && d.proxy); onProxyState(); })
+      .catch(function(){ PROXY = false; onProxyState(); });
+  }
+
+  function onProxyState(){
+    Array.prototype.forEach.call(providerEl.options, function(o){
+      if(!o.dataset.base) o.dataset.base = o.textContent;
+      var needs = PROXY_MODES.indexOf(o.value) >= 0;
+      o.disabled = needs && PROXY === false;
+      o.textContent = o.dataset.base + (needs && PROXY === false ? ' — local server chahiye' : '');
+    });
+
+    var bar = $('envBar');
+    if(PROXY === false){
+      bar.className = 'envbar show';
+      bar.innerHTML = '<b>Local server nahi mila</b> — ye page static hosting par khula hai, ya aapka <code>server.js</code> band hai. Twilio / Fast2SMS / gateway modes tabhi chalte hain jab local server chale (API key server par rehti hai). Abhi sirf <b>Textbelt</b> mode chalega, aur wo India me unreliable hai. Fix: repo folder me <code>start.bat</code> (Windows) ya <code>./start.sh</code> chalao, phir <code>http://localhost:8000</code> kholo.';
+      if(PROXY_MODES.indexOf(providerEl.value) >= 0){ providerEl.value = 'textbelt-free'; syncProvider(); }
+    }else if(PROXY === true){
+      bar.className = 'envbar show ok';
+      bar.innerHTML = '<b>Local server connected</b> — Twilio, Fast2SMS aur gateway, teeno modes available hain.';
+    }
+  }
+
   /* ---------------- provider UI ---------------- */
   function syncProvider(){
     var p = providerEl.value;
@@ -651,6 +692,7 @@
   /* ---------------- init ---------------- */
   loadSettings();
   loadTextId();
+  detectProxy();
   syncProvider();
   updateCounter();
   renderHist();
