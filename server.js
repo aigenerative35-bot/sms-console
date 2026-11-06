@@ -23,6 +23,7 @@ const path = require('node:path');
 const PORT = Number(process.env.PORT || 8000);
 const FAST2SMS_KEY = (process.env.FAST2SMS_KEY || '').trim();
 const TWILIO_BASE = (process.env.TWILIO_BASE || 'https://api.twilio.com').replace(/\/+$/, '');
+const FAST2SMS_BASE = (process.env.FAST2SMS_BASE || 'https://www.fast2sms.com').replace(/\/+$/, '');
 const ROOT = __dirname;
 const MAX_BODY = 32 * 1024;
 
@@ -213,8 +214,9 @@ async function sendViaTwilio(p) {
  * Provider 3: Fast2SMS DLT
  * ------------------------------------------------------------------ */
 async function sendViaFast2SMS(p) {
-  if (!FAST2SMS_KEY) {
-    return { code: 500, body: { success: false, error: 'FAST2SMS_KEY env var set nahi hai. Server restart karo key ke saath.' } };
+  const key = String(p.apiKey || '').trim() || FAST2SMS_KEY;
+  if (!key) {
+    return { code: 500, body: { success: false, error: 'Fast2SMS key nahi mili — page me daalo ya FAST2SMS_KEY env var set karo.' } };
   }
 
   const route = p.route === 'dlt' ? 'dlt' : 'q';
@@ -241,9 +243,9 @@ async function sendViaFast2SMS(p) {
 
   let r, data;
   try {
-    r = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+    r = await fetch(FAST2SMS_BASE + '/dev/bulkV2', {
       method: 'POST',
-      headers: { authorization: FAST2SMS_KEY, 'Content-Type': 'application/json' },
+      headers: { authorization: key, 'Content-Type': 'application/json' },
       body: JSON.stringify(out),
       signal: AbortSignal.timeout(20000)
     });
@@ -282,6 +284,49 @@ const server = http.createServer(async (req, res) => {
       fast2smsKey: !!FAST2SMS_KEY,
       version: 3
     });
+  }
+
+  /* credential check — bhejne se pehle key valid hai ya nahi */
+  if (url.pathname === '/api/verify') {
+    if (req.method !== 'POST') return send(res, 405, { success: false, error: 'POST only' });
+    let p;
+    try { p = JSON.parse(await readBody(req)); } catch { return send(res, 400, { success: false, error: 'JSON padh nahi paya' }); }
+
+    if (p.provider === 'twilio') {
+      const sid = String(p.accountSid || '').trim();
+      const token = String(p.authToken || '').trim();
+      if (!/^AC[0-9a-f]{32}$/i.test(sid)) return send(res, 400, { success: false, error: 'Account SID ka format galat hai (AC + 32 hex characters).' });
+      if (!token) return send(res, 400, { success: false, error: 'Auth Token khali hai.' });
+      try {
+        const r = await fetch(TWILIO_BASE + '/2010-04-01/Accounts/' + encodeURIComponent(sid) + '.json', {
+          headers: { Authorization: 'Basic ' + Buffer.from(sid + ':' + token).toString('base64') },
+          signal: AbortSignal.timeout(15000)
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.status === 200) {
+          return send(res, 200, { success: true, provider: 'twilio', account: d.friendly_name, status: d.status, type: d.type });
+        }
+        if (r.status === 401) return send(res, 401, { success: false, error: 'SID ya Auth Token galat hai (401). Console se dobara copy karo.' });
+        return send(res, r.status, { success: false, error: (d && d.message) || ('HTTP ' + r.status) });
+      } catch (err) {
+        return send(res, 502, { success: false, error: 'Twilio tak nahi pahunch paya: ' + err.message });
+      }
+    }
+
+    if (p.provider === 'fast2sms') {
+      const key = String(p.apiKey || '').trim() || FAST2SMS_KEY;
+      if (!key) return send(res, 400, { success: false, error: 'Fast2SMS API key khali hai.' });
+      try {
+        const r = await fetch(FAST2SMS_BASE + '/dev/wallet', { headers: { authorization: key }, signal: AbortSignal.timeout(15000) });
+        const d = await r.json().catch(() => ({}));
+        if (r.status === 200) return send(res, 200, { success: true, provider: 'fast2sms', wallet: d });
+        return send(res, r.status, { success: false, error: 'Key reject ho gayi (HTTP ' + r.status + ').', raw: d });
+      } catch (err) {
+        return send(res, 502, { success: false, error: 'Fast2SMS tak nahi pahunch paya: ' + err.message });
+      }
+    }
+
+    return send(res, 400, { success: false, error: 'Unknown provider: ' + p.provider });
   }
 
   if (url.pathname === '/api/send') {
