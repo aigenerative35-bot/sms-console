@@ -194,11 +194,28 @@
       <div class="field">
         <label class="lbl" for="provider">Provider</label>
         <select id="provider">
+          <option value="twilio">Twilio trial — 100 free SMS (online route)</option>
           <option value="textbelt-free">Textbelt free key (1 msg/day)</option>
           <option value="textbelt-own">Textbelt — apna paid key</option>
           <option value="gateway">Own SIM gateway (Android)</option>
           <option value="fast2sms">Fast2SMS DLT (proxy chahiye)</option>
         </select>
+      </div>
+
+      <div class="hidden" id="f-twilio">
+        <div class="field">
+          <label class="lbl" for="twsid">Account SID</label>
+          <input class="mono" type="text" id="twsid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="lbl" for="twtoken">Auth Token</label>
+          <input class="mono" type="password" id="twtoken" placeholder="console se copy karo" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="lbl" for="twfrom">From (Twilio number)</label>
+          <input class="mono" type="text" id="twfrom" placeholder="+1xxxxxxxxxx" autocomplete="off">
+          <p class="hint">Trial me <b>recipient number pehle verify</b> karna padta hai: Console → Phone Numbers → Verified Caller IDs.</p>
+        </div>
       </div>
 
       <div class="field hidden" id="f-key">
@@ -208,8 +225,9 @@
 
       <div class="hidden" id="f-gw">
         <div class="field">
-          <label class="lbl" for="gwurl">Gateway base URL</label>
-          <input class="mono" type="text" id="gwurl" value="https://api.sms-gate.app">
+          <label class="lbl" for="gwurl">Gateway URL</label>
+          <input class="mono" type="text" id="gwurl" placeholder="http://192.168.1.5:8080">
+          <p class="hint">Phone app ka local server, ya cloud: <code>https://api.sms-gate.app</code></p>
         </div>
         <div class="field">
           <label class="lbl" for="gwuser">Username</label>
@@ -261,6 +279,7 @@
   var $ = function(id){ return document.getElementById(id); };
   var providerEl=$('provider'), phoneEl=$('phone'), ccEl=$('cc'), msgEl=$('msg');
   var keyEl=$('apikey'), gwUrlEl=$('gwurl'), gwUserEl=$('gwuser'), gwPassEl=$('gwpass');
+  var twSidEl=$('twsid'), twTokenEl=$('twtoken'), twFromEl=$('twfrom');
   var senderEl=$('sender'), f2sRouteEl=$('f2sroute'), tplEl=$('tplid'), varsEl=$('vars');
   var sendBtn=$('send'), refreshBtn=$('refresh'), spin=$('spin'), statusEl=$('status');
   var quotaPill=$('quotaPill'), urlWarn=$('urlWarn');
@@ -281,6 +300,9 @@
       if(s.gwurl) gwUrlEl.value=s.gwurl;
       if(s.gwuser) gwUserEl.value=s.gwuser;
       if(s.gwpass) gwPassEl.value=s.gwpass;
+      if(s.twsid) twSidEl.value=s.twsid;
+      if(s.twtoken) twTokenEl.value=s.twtoken;
+      if(s.twfrom) twFromEl.value=s.twfrom;
       if(s.sender) senderEl.value=s.sender;
       if(s.f2sroute) f2sRouteEl.value=s.f2sroute;
       if(s.tplid) tplEl.value=s.tplid;
@@ -292,6 +314,7 @@
       localStorage.setItem(LS_SET, JSON.stringify({
         provider:providerEl.value, cc:ccEl.value, apikey:keyEl.value,
         gwurl:gwUrlEl.value, gwuser:gwUserEl.value, gwpass:gwPassEl.value,
+        twsid:twSidEl.value, twtoken:twTokenEl.value, twfrom:twFromEl.value,
         sender:senderEl.value, f2sroute:f2sRouteEl.value, tplid:tplEl.value, vars:varsEl.value
       }));
     }catch(e){}
@@ -392,7 +415,8 @@
   /* ---------------- provider UI ---------------- */
   function syncProvider(){
     var p = providerEl.value;
-    $('f-key').classList.toggle('hidden', p === 'textbelt-free' || p === 'gateway' || p === 'fast2sms');
+    $('f-twilio').classList.toggle('hidden', p !== 'twilio');
+    $('f-key').classList.toggle('hidden', p === 'textbelt-free' || p === 'gateway' || p === 'fast2sms' || p === 'twilio');
     $('f-gw').classList.toggle('hidden', p !== 'gateway');
     $('f-f2s').classList.toggle('hidden', p !== 'fast2sms');
     $('f-tpl').classList.toggle('hidden', p !== 'fast2sms' || f2sRouteEl.value !== 'dlt');
@@ -400,9 +424,10 @@
     $('senderPreview').textContent='BP-'+(sid||'______')+'-S';
 
     var note=$('providerNote');
-    if(p === 'textbelt-free') note.innerHTML='Textbelt ka free key: din mein 1 SMS, IP-based, koi signup nahi.';
+    if(p === 'twilio') note.innerHTML='Twilio trial: 100 free SMS, 30 din, bina credit card. Message <b>online route se seedha SIM par</b> jata hai. Trial me sirf verified numbers par bhej sakte ho.';
+    else if(p === 'textbelt-free') note.innerHTML='Textbelt ka free key: din mein 1 SMS, IP-based, koi signup nahi. India me delivery reliable nahi hai.';
     else if(p === 'textbelt-own') note.innerHTML='Apna paid key — quota zyada, 100+ countries. Key browser me rehti hai, isliye public page par na daalo.';
-    else if(p === 'gateway') note.innerHTML='Aapke phone ki SIM bhejegi — <code>android-sms-gateway</code> ya textbee ke saath.';
+    else if(p === 'gateway') note.innerHTML='Aapke phone ki SIM se SMS jayega — asli number, koi DLT nahi, koi quota nahi. Phone aur laptop ek hi Wi-Fi par hone chahiye.';
     else note.innerHTML='Fast2SMS DLT route — header aapka registered hona chahiye. Ye <code>server.js</code> proxy se chalta hai.';
 
     updatePreview(); syncSendState(); saveSettings();
@@ -432,10 +457,19 @@
       else { body.message=text; body.language='english'; }
       return {url:'/api/send', headers:{'Content-Type':'application/json'}, auth:false, body:body};
     }
+    if(p === 'twilio'){
+      // Twilio API CORS allow nahi karta — proxy se jata hai
+      return {url:'/api/send', headers:{'Content-Type':'application/json'}, auth:false,
+              body:{provider:'twilio', accountSid:(twSidEl.value||'').trim(),
+                    authToken:(twTokenEl.value||'').trim(), from:(twFromEl.value||'').trim(),
+                    phone:num, message:text}};
+    }
     if(p === 'gateway'){
-      var base=(gwUrlEl.value||'').trim().replace(/\/+$/,'');
-      return {url:base+'/3rdparty/v1/messages', headers:{'Content-Type':'application/json'}, auth:true,
-              body:{message:text, phoneNumbers:[num]}};
+      // proxy ke through jata hai — browser se phone tak direct call CORS/mixed-content se block hoti hai
+      return {url:'/api/send', headers:{'Content-Type':'application/json'}, auth:false,
+              body:{provider:'gateway', gatewayUrl:(gwUrlEl.value||'').trim(),
+                    username:gwUserEl.value||'', password:gwPassEl.value||'',
+                    phone:num, message:text}};
     }
     return {url:'https://textbelt.com/text', headers:{'Content-Type':'application/json'}, auth:false,
             body:{phone:num, message:text, key:currentKey()}};
@@ -512,6 +546,11 @@
       setStatus('err','Aaj ka free message pehle hi bhej diya hai. Kal dobara try karo, ya Advanced panel se apna Textbelt key daalo.');
       return;
     }
+    if(p === 'twilio'){
+      if(!/^AC[0-9a-f]{32}$/i.test((twSidEl.value||'').trim())){ setStatus('err','Account SID galat — Twilio console se copy karo (AC se shuru).'); twSidEl.focus(); return; }
+      if(!(twTokenEl.value||'').trim()){ setStatus('err','Auth Token khali hai.'); twTokenEl.focus(); return; }
+      if(!(twFromEl.value||'').trim()){ setStatus('err','From number chahiye — Twilio ka trial number daalo.'); twFromEl.focus(); return; }
+    }
     if(p === 'textbelt-own' && !currentKey()){ setStatus('err','Is provider ke liye API key chahiye.'); keyEl.focus(); return; }
     if(p === 'fast2sms'){
       var sid=(senderEl.value||'').trim().toUpperCase();
@@ -542,7 +581,15 @@
           if(p === 'textbelt-free'){ markUsed(); paintQuota(0); }
           if(r.data.textId){ saveTextId(r.data.textId); }
           var q=(typeof r.data.quotaRemaining==='number')?' · quota left: '+r.data.quotaRemaining:'';
-          setStatus('ok','SMS nikal gaya → '+esc(num)+q+'<pre>'+esc(JSON.stringify(r.data,null,2))+'</pre>');
+          if(p === 'gateway'){
+            var st=r.data.state?(' · state: '+r.data.state):'';
+            setStatus('ok','SIM se bhej diya → '+esc(num)+esc(st)+'<pre>'+esc(JSON.stringify(r.data,null,2))+'</pre>');
+          }else if(p === 'twilio'){
+            var stw=r.data.state?(' · status: '+r.data.state):'';
+            setStatus('ok','Twilio ne bhej diya → '+esc(num)+esc(stw)+'<pre>'+esc(JSON.stringify(r.data,null,2))+'</pre>');
+          }else{
+            setStatus('ok','SMS nikal gaya → '+esc(num)+q+'<pre>'+esc(JSON.stringify(r.data,null,2))+'</pre>');
+          }
           addHist({to:num, msg:text.slice(0,120), at:Date.now(), ok:true});
           msgEl.value=''; updateCounter();
         }else{
@@ -566,7 +613,7 @@
   /* ---------------- wiring ---------------- */
   providerEl.addEventListener('change', syncProvider);
   f2sRouteEl.addEventListener('change', syncProvider);
-  [keyEl,gwUrlEl,gwUserEl,gwPassEl,phoneEl,ccEl,senderEl,tplEl,varsEl].forEach(function(el){
+  [keyEl,gwUrlEl,gwUserEl,gwPassEl,phoneEl,ccEl,senderEl,tplEl,varsEl,twSidEl,twTokenEl,twFromEl].forEach(function(el){
     el.addEventListener('input', function(){ updatePreview(); saveSettings(); });
   });
   msgEl.addEventListener('input', updateCounter);
