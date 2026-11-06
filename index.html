@@ -175,6 +175,7 @@
     <div class="actions">
       <button class="btn btn--primary" id="send" type="button">Send SMS</button>
       <button class="btn btn--ghost" id="refresh" type="button">Quota refresh</button>
+      <button class="btn btn--ghost" id="deliver" type="button" style="display:none">Delivery check</button>
       <span class="hint" id="spin" style="display:none">bhej raha hoon…</span>
     </div>
 
@@ -263,9 +264,10 @@
   var senderEl=$('sender'), f2sRouteEl=$('f2sroute'), tplEl=$('tplid'), varsEl=$('vars');
   var sendBtn=$('send'), refreshBtn=$('refresh'), spin=$('spin'), statusEl=$('status');
   var quotaPill=$('quotaPill'), urlWarn=$('urlWarn');
-  var histEl=$('hist'), histEmpty=$('histEmpty');
+  var histEl=$('hist'), histEmpty=$('histEmpty'), deliverBtn=$('deliver');
 
-  var LS_SET='smsconsole.set.v4', LS_HIST='smsconsole.hist.v4', LS_USED='smsconsole.used.v4';
+  var LS_SET='smsconsole.set.v4', LS_HIST='smsconsole.hist.v4', LS_USED='smsconsole.used.v4', LS_TID='smsconsole.tid.v4';
+  var lastTextId=null;
 
   function todayKey(){ return new Date().toISOString().slice(0,10); }
 
@@ -301,6 +303,48 @@
   }
   function markUsed(){
     try{ localStorage.setItem(LS_USED, todayKey()); }catch(e){}
+  }
+  function saveTextId(id){
+    lastTextId=id;
+    try{ localStorage.setItem(LS_TID, JSON.stringify({id:id, day:todayKey()})); }catch(e){}
+    deliverBtn.style.display='inline-block';
+  }
+  function loadTextId(){
+    try{
+      var o=JSON.parse(localStorage.getItem(LS_TID)||'{}');
+      if(o.id && o.day === todayKey()){ lastTextId=o.id; deliverBtn.style.display='inline-block'; }
+    }catch(e){}
+  }
+
+  /* delivery status: GET https://textbelt.com/status/:textId */
+  function checkDelivery(){
+    if(!lastTextId){
+      setStatus('info','Pehle ek SMS bhejo — phir uski delivery check kar sakte ho.');
+      return;
+    }
+    setStatus('info','Delivery status dekh raha hoon (textId '+esc(lastTextId)+')…');
+    fetch('https://textbelt.com/status/'+encodeURIComponent(lastTextId), {cache:'no-store'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        var s=(d && d.status) ? String(d.status).toUpperCase() : 'UNKNOWN';
+        var meaning={
+          DELIVERED:'Carrier ne confirm kiya — phone par pahunch gaya.',
+          SENT:'Carrier ko de diya, par delivery receipt nahi mila (kuch carriers receipt nahi dete).',
+          SENDING:'Queue me hai / abhi dispatch hua hai. Thoda wait karo.',
+          FAILED:'Carrier ne reject kar diya — phone par nahi jayega.',
+          UNKNOWN:'Status pata nahi chala.'
+        }[s] || 'Status: '+s;
+        var kind=(s==='DELIVERED')?'ok':((s==='FAILED'||s==='UNKNOWN')?'err':'info');
+        var tail='';
+        if(s==='FAILED'||s==='SENT'){
+          tail='<pre>India me international route se aane wale SMS zyadatar NDNC/DND numbers par operator block kar dete hain.\nGuaranteed delivery ke liye apne phone ki SIM se bhejo (Advanced → Own SIM gateway).</pre>';
+        }
+        setStatus(kind, '<b>'+esc(s)+'</b> — '+esc(meaning)+tail);
+      })
+      .catch(function(err){
+        setStatus('err','Status check fail: '+esc(err.message||err)+
+          '<pre>Status endpoint CORS block kar sakta hai. Browser me seedha khol lo:\nhttps://textbelt.com/status/'+esc(lastTextId)+'</pre>');
+      });
   }
 
   /* ---------------- quota ---------------- */
@@ -496,6 +540,7 @@
         var ok = r.status>=200 && r.status<300 && r.data.success!==false;
         if(ok){
           if(p === 'textbelt-free'){ markUsed(); paintQuota(0); }
+          if(r.data.textId){ saveTextId(r.data.textId); }
           var q=(typeof r.data.quotaRemaining==='number')?' · quota left: '+r.data.quotaRemaining:'';
           setStatus('ok','SMS nikal gaya → '+esc(num)+q+'<pre>'+esc(JSON.stringify(r.data,null,2))+'</pre>');
           addHist({to:num, msg:text.slice(0,120), at:Date.now(), ok:true});
@@ -530,6 +575,7 @@
   });
   sendBtn.addEventListener('click', sendSms);
   refreshBtn.addEventListener('click', function(){ refreshQuota(false); });
+  deliverBtn.addEventListener('click', checkDelivery);
   Array.prototype.forEach.call(document.querySelectorAll('.chip'), function(c){
     c.addEventListener('click', function(){
       msgEl.value=c.getAttribute('data-t'); updateCounter(); msgEl.focus();
@@ -538,6 +584,7 @@
 
   /* ---------------- init ---------------- */
   loadSettings();
+  loadTextId();
   syncProvider();
   updateCounter();
   renderHist();
