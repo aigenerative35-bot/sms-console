@@ -57,3 +57,24 @@ Phir page me Provider → Fast2SMS, Route → **Quick SMS**.
 Free chahiye → **Twilio trial** (100 SMS, verified number par).
 India-native aur apna header chahiye → **DLT + Fast2SMS DLT route** (paid, registration zaroori).
 Bilkul free unlimited → **apne phone ki SIM ka gateway** (`server.js` + android-sms-gateway app).
+
+---
+
+## Option C — Email → SMS (koi API key nahi)
+
+Page me Provider → **Email → SMS** chuno. Ye aapke email app ko pre-filled mail ke saath kholta hai:
+
+```
+To: 919876543210@sms.textlocal.in
+Subject: SMS
+Body: <aapka message>
+```
+
+Mail bhejte hi gateway use SMS me badal deta hai.
+
+Zaroori baat: gateway domain (default `sms.textlocal.in`) par aapka **sender email registered** hona chahiye,
+warna mail reject ho jayegi — koi bhi gateway open relay nahi chalta. Textlocal/Sinch par free account banao,
+apna Gmail/Outlook sender add karo, phir ye mode use karo.
+
+Purane operator gateways (`airtelmail.com`, `ideacellular.net`, `airtelap.com`) jo 2008 ke lists me milte hain,
+ab kaam nahi karte — unme se zyadatar dead mark hain. In par waqt mat lagao.
