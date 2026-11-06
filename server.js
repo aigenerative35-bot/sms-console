@@ -1,17 +1,17 @@
 /**
- * SMS Console proxy — dependency-free Node.js server.
+ * SMS Console — local server
  *
- * Why this exists: SMS API keys must never sit in browser JavaScript.
- * This server holds the key, serves the HTML page, and forwards
- * /api/send to Fast2SMS.
+ * Do kaam karta hai:
+ *   1. Page serve karta hai (sms-console.html / index.html)
+ *   2. /api/send par do providers ko forward karta hai:
+ *        - gateway  : aapke Android phone ka SMS Gateway (asli SIM se SMS jata hai)
+ *        - fast2sms : Fast2SMS DLT route (header aapka registered hona chahiye)
  *
- * Run:
- *   FAST2SMS_KEY=your_key_here node server.js
- *   (optional) PORT=8000
+ * Chalane ka tarika:
+ *   node server.js
+ *   FAST2SMS_KEY=xxx node server.js        (sirf DLT mode ke liye)
  *
- * Then open http://localhost:8000/
- *
- * Node 18+ required (uses global fetch). No npm install needed.
+ * Node 18+ chahiye. Koi npm install nahi.
  */
 
 'use strict';
@@ -22,8 +22,9 @@ const path = require('node:path');
 
 const PORT = Number(process.env.PORT || 8000);
 const FAST2SMS_KEY = (process.env.FAST2SMS_KEY || '').trim();
+const TWILIO_BASE = (process.env.TWILIO_BASE || 'https://api.twilio.com').replace(/\/+$/, '');
 const ROOT = __dirname;
-const MAX_BODY = 16 * 1024;
+const MAX_BODY = 32 * 1024;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -35,9 +36,8 @@ const MIME = {
   '.md': 'text/markdown; charset=utf-8'
 };
 
-/* --- very small per-IP throttle so a stuck button cannot spam --- */
 const lastHit = new Map();
-const MIN_GAP_MS = 1500;
+const MIN_GAP_MS = 1200;
 
 function throttled(ip) {
   const now = Date.now();
@@ -49,12 +49,11 @@ function throttled(ip) {
 }
 
 function send(res, code, obj) {
-  const body = JSON.stringify(obj);
   res.writeHead(code, {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store'
   });
-  res.end(body);
+  res.end(JSON.stringify(obj));
 }
 
 function readBody(req) {
@@ -63,11 +62,7 @@ function readBody(req) {
     const chunks = [];
     req.on('data', (c) => {
       size += c.length;
-      if (size > MAX_BODY) {
-        reject(new Error('Body too large'));
-        req.destroy();
-        return;
-      }
+      if (size > MAX_BODY) { reject(new Error('Body too large')); req.destroy(); return; }
       chunks.push(c);
     });
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
@@ -75,37 +70,170 @@ function readBody(req) {
   });
 }
 
-/* --- Fast2SMS call --- */
-async function sendViaFast2SMS(payload) {
+/* ------------------------------------------------------------------ *
+ * Provider 1: Android SMS Gateway (own SIM)
+ * Cloud  : https://api.sms-gate.app/3rdparty/v1/messages
+ * Local  : http://<phone-ip>:8080/message
+ * ------------------------------------------------------------------ */
+async function sendViaGateway(p) {
+  const rawBase = String(p.gatewayUrl || '').trim().replace(/\/+$/, '');
+  const user = String(p.username || '');
+  const pass = String(p.password || '');
+  const text = String(p.message || '').trim();
+  const number = String(p.phone || '').trim();
+
+  if (!rawBase) return { code: 400, body: { success: false, error: 'Gateway URL khali hai (e.g. http://192.168.1.5:8080).' } };
+  if (!text) return { code: 400, body: { success: false, error: 'Message khali hai.' } };
+  if (!/^\+\d{8,15}$/.test(number)) return { code: 400, body: { success: false, error: 'Number E.164 format me chahiye, e.g. +919876543210.' } };
+
+  const payload = { textMessage: { text }, phoneNumbers: [number] };
+
+  // cloud already has /3rdparty/v1 in the domain; local servers answer on /message
+  const isCloud = /api\.sms-gate\.app$/i.test(rawBase);
+  const candidates = isCloud
+    ? ['/3rdparty/v1/messages']
+    : ['/message', '/3rdparty/v1/messages'];
+
+  const auth = 'Basic ' + Buffer.from(user + ':' + pass).toString('base64');
+  let lastErr = null;
+
+  for (const suffix of candidates) {
+    const url = rawBase + suffix;
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: auth },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(15000)
+      });
+      const txt = await r.text();
+      let data;
+      try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
+
+      if (r.status === 404) { lastErr = { status: 404, url, data }; continue; }
+
+      if (r.status === 401 || r.status === 403) {
+        return { code: r.status, body: { success: false, error: 'Gateway ne credentials reject kiye — username/password check karo.', raw: data } };
+      }
+
+      const ok = r.status >= 200 && r.status < 300;
+      return {
+        code: ok ? 200 : r.status,
+        body: {
+          success: ok,
+          provider: 'gateway',
+          endpoint: url,
+          state: data && data.state ? data.state : (ok ? 'Pending' : undefined),
+          id: data && data.id ? data.id : undefined,
+          error: ok ? undefined : ((data && (data.message || data.error)) || ('HTTP ' + r.status)),
+          raw: data
+        }
+      };
+    } catch (err) {
+      lastErr = { status: 0, url, message: err.message };
+    }
+  }
+
+  const hint = (lastErr && lastErr.status === 404)
+    ? 'Gateway mil gaya par endpoint nahi — app me "Local Server" mode on hai ya nahi check karo.'
+    : 'Phone tak nahi pahunch paya. Phone aur laptop ek hi Wi-Fi par hain? URL me phone ka IP sahi hai? App me server chalu hai?';
+
+  return {
+    code: 502,
+    body: {
+      success: false,
+      error: hint,
+      detail: lastErr,
+      tried: candidates.map((c) => rawBase + c)
+    }
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Provider 2: Twilio (online route — message seedha SIM par jata hai)
+ * Trial: 100 free SMS, sirf verified numbers par, template messages.
+ * ------------------------------------------------------------------ */
+async function sendViaTwilio(p) {
+  const sid = String(p.accountSid || '').trim();
+  const token = String(p.authToken || '').trim();
+  const from = String(p.from || '').trim();
+  const to = String(p.phone || '').trim();
+  const text = String(p.message || '').trim();
+
+  if (!/^AC[0-9a-f]{32}$/i.test(sid)) return { code: 400, body: { success: false, error: 'Account SID galat lag raha hai — Twilio console se copy karo (AC se shuru, 34 characters).' } };
+  if (!token) return { code: 400, body: { success: false, error: 'Auth Token khali hai.' } };
+  if (!/^\+\d{8,15}$/.test(to)) return { code: 400, body: { success: false, error: 'Recipient number E.164 format me chahiye, e.g. +919876543210.' } };
+  if (!/^\+?[\dA-Za-z]{3,20}$/.test(from)) return { code: 400, body: { success: false, error: 'From number chahiye — Twilio console se trial number copy karo (+1...).' } };
+  if (!text) return { code: 400, body: { success: false, error: 'Message khali hai.' } };
+
+  const url = TWILIO_BASE + '/2010-04-01/Accounts/' + encodeURIComponent(sid) + '/Messages.json';
+  const form = new URLSearchParams({ To: to, From: from, Body: text });
+
+  let r, data;
+  try {
+    r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + Buffer.from(sid + ':' + token).toString('base64'),
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: form.toString(),
+      signal: AbortSignal.timeout(20000)
+    });
+    const txt = await r.text();
+    try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
+  } catch (err) {
+    return { code: 502, body: { success: false, error: 'Twilio tak nahi pahunch paya: ' + err.message } };
+  }
+
+  const ok = r.status >= 200 && r.status < 300;
+  let err = undefined;
+  if (!ok) {
+    err = (data && (data.message || data.error)) || ('HTTP ' + r.status);
+    if (data && data.code === 21608) err = 'Trial account: ye number verified nahi hai. Twilio console → Verified Caller IDs me apna number add karo. ' + err;
+    if (data && data.code === 21610) err = 'Trial account: verified number hi allowed hai, aur wahi number recipient bhi hona chahiye.';
+    if (data && data.code === 21211) err = 'Recipient number invalid hai. E.164 format check karo (+91...).';
+    if (data && data.code === 21659 || (data && data.code === 21612)) err = 'India route: alphanumeric From use kar raha hai — Twilio ka +1 number daalo.';
+  }
+
+  return {
+    code: ok ? 200 : r.status,
+    body: {
+      success: ok,
+      provider: 'twilio',
+      sid: data && data.sid ? data.sid : undefined,
+      state: data && data.status ? data.status : undefined,
+      error: err,
+      raw: data
+    }
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * Provider 3: Fast2SMS DLT
+ * ------------------------------------------------------------------ */
+async function sendViaFast2SMS(p) {
   if (!FAST2SMS_KEY) {
     return { code: 500, body: { success: false, error: 'FAST2SMS_KEY env var set nahi hai. Server restart karo key ke saath.' } };
   }
 
-  const route = payload.route === 'dlt' ? 'dlt' : 'q';
-  const sender = String(payload.sender_id || '').trim().toUpperCase();
-  const numbers = String(payload.numbers || '').replace(/[^\d,]/g, '');
+  const route = p.route === 'dlt' ? 'dlt' : 'q';
+  const sender = String(p.sender_id || '').trim().toUpperCase();
+  const numbers = String(p.numbers || '').replace(/[^\d,]/g, '');
 
-  if (!/^[A-Z]{6}$/.test(sender)) {
-    return { code: 400, body: { success: false, error: 'sender_id 6 letters ka hona chahiye (e.g. IXCDIS).' } };
-  }
-  if (!numbers) {
-    return { code: 400, body: { success: false, error: 'numbers khali hai.' } };
-  }
+  if (!/^[A-Z]{6}$/.test(sender)) return { code: 400, body: { success: false, error: 'sender_id 6 letters ka hona chahiye (e.g. IXCDIS).' } };
+  if (!numbers) return { code: 400, body: { success: false, error: 'numbers khali hai.' } };
 
   const out = { route, sender_id: sender, numbers };
 
   if (route === 'dlt') {
-    const templateId = String(payload.message || '').trim();
-    if (!templateId) {
-      return { code: 400, body: { success: false, error: 'DLT route ke liye template ID chahiye.' } };
-    }
+    const templateId = String(p.message || '').trim();
+    if (!templateId) return { code: 400, body: { success: false, error: 'DLT route ke liye template ID chahiye.' } };
     out.message = templateId;
-    if (payload.variables_values) out.variables_values = String(payload.variables_values);
+    if (p.variables_values) out.variables_values = String(p.variables_values);
   } else {
-    const text = String(payload.message || '').trim();
-    if (!text) {
-      return { code: 400, body: { success: false, error: 'message khali hai.' } };
-    }
+    const text = String(p.message || '').trim();
+    if (!text) return { code: 400, body: { success: false, error: 'message khali hai.' } };
     out.message = text;
     out.language = 'english';
     out.flash = 0;
@@ -115,11 +243,9 @@ async function sendViaFast2SMS(payload) {
   try {
     r = await fetch('https://www.fast2sms.com/dev/bulkV2', {
       method: 'POST',
-      headers: {
-        authorization: FAST2SMS_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(out)
+      headers: { authorization: FAST2SMS_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(out),
+      signal: AbortSignal.timeout(20000)
     });
     const txt = await r.text();
     try { data = JSON.parse(txt); } catch { data = { raw: txt }; }
@@ -127,7 +253,6 @@ async function sendViaFast2SMS(payload) {
     return { code: 502, body: { success: false, error: 'Fast2SMS tak nahi pahunch paya: ' + err.message } };
   }
 
-  // Fast2SMS returns {return: true/false, message: [...], request_id}
   const ok = r.ok && data && data.return !== false;
   return {
     code: r.status,
@@ -142,13 +267,16 @@ async function sendViaFast2SMS(payload) {
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * Router
+ * ------------------------------------------------------------------ */
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const ip = req.socket.remoteAddress || 'unknown';
 
   if (url.pathname === '/api/send') {
     if (req.method !== 'POST') return send(res, 405, { success: false, error: 'POST only' });
-    if (throttled(ip)) return send(res, 429, { success: false, error: 'Thoda ruko — 1.5 second ka gap rakho.' });
+    if (throttled(ip)) return send(res, 429, { success: false, error: 'Thoda ruko — 1.2 second ka gap rakho.' });
 
     let payload;
     try {
@@ -157,16 +285,18 @@ const server = http.createServer(async (req, res) => {
       return send(res, 400, { success: false, error: 'JSON padh nahi paya: ' + err.message });
     }
 
-    if (payload.provider === 'fast2sms') {
-      const result = await sendViaFast2SMS(payload);
-      return send(res, result.code, result.body);
-    }
-    return send(res, 400, { success: false, error: 'Unknown provider: ' + payload.provider });
+    let result;
+    if (payload.provider === 'gateway') result = await sendViaGateway(payload);
+    else if (payload.provider === 'twilio') result = await sendViaTwilio(payload);
+    else if (payload.provider === 'fast2sms') result = await sendViaFast2SMS(payload);
+    else return send(res, 400, { success: false, error: 'Unknown provider: ' + payload.provider });
+
+    return send(res, result.code, result.body);
   }
 
-  /* --- static files --- */
+  /* static files */
   let rel = decodeURIComponent(url.pathname);
-  if (rel === '/' || rel === '') rel = '/sms-console.html';
+  if (rel === '/' || rel === '') rel = '/index.html';
   const filePath = path.join(ROOT, path.normalize(rel).replace(/^(\.\.[/\\])+/, ''));
 
   if (!filePath.startsWith(ROOT)) {
@@ -175,6 +305,14 @@ const server = http.createServer(async (req, res) => {
   }
 
   fs.readFile(filePath, (err, buf) => {
+    if (err && rel === '/index.html') {
+      // index.html na ho to sms-console.html serve karo
+      return fs.readFile(path.join(ROOT, 'sms-console.html'), (e2, b2) => {
+        if (e2) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('Not found: ' + rel); }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(b2);
+      });
+    }
     if (err) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('Not found: ' + rel);
@@ -187,25 +325,25 @@ const server = http.createServer(async (req, res) => {
   });
 });
 
-/* --- open the browser automatically (skip with NO_OPEN=1) --- */
-function openBrowser(url) {
+function openBrowser(target) {
   if (process.env.NO_OPEN === '1') return;
   const { spawn } = require('node:child_process');
   let cmd, args;
-  if (process.platform === 'win32') { cmd = 'cmd'; args = ['/c', 'start', '', url]; }
-  else if (process.platform === 'darwin') { cmd = 'open'; args = [url]; }
-  else { cmd = 'xdg-open'; args = [url]; }
+  if (process.platform === 'win32') { cmd = 'cmd'; args = ['/c', 'start', '', target]; }
+  else if (process.platform === 'darwin') { cmd = 'open'; args = [target]; }
+  else { cmd = 'xdg-open'; args = [target]; }
   try {
     const child = spawn(cmd, args, { detached: true, stdio: 'ignore' });
     child.on('error', () => {});
     child.unref();
-  } catch { /* browser kholna optional hai */ }
+  } catch { /* optional */ }
 }
 
 server.listen(PORT, () => {
-  const url = 'http://localhost:' + PORT + '/';
-  console.log('SMS Console chal raha hai: ' + url);
-  console.log('Fast2SMS key: ' + (FAST2SMS_KEY ? 'set hai (' + FAST2SMS_KEY.slice(0, 4) + '…) ' : 'SET NAHI HAI — sirf Textbelt free mode chalega'));
+  const target = 'http://localhost:' + PORT + '/';
+  console.log('SMS Console chal raha hai: ' + target);
+  console.log('Fast2SMS key: ' + (FAST2SMS_KEY ? 'set hai' : 'set nahi (sirf gateway/Textbelt mode chalega)'));
+  console.log('Twilio mode: Account SID + Auth Token + From number page me daalo (trial = 100 free SMS)');
   console.log('Band karne ke liye Ctrl+C dabao.');
-  setTimeout(() => openBrowser(url), 400);
+  setTimeout(() => openBrowser(target), 400);
 });
