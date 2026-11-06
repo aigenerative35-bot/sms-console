@@ -121,6 +121,13 @@
   details.adv summary::before{content:"+ ";color:var(--ink)}
   details.adv[open] summary::before{content:"– "}
   details.adv .adv-body{padding-bottom:18px}
+  .helpbox{border:1px solid var(--border);border-radius:9px;background:var(--surface-3);padding:0 14px;margin-bottom:16px}
+  .helpbox summary{cursor:pointer;padding:11px 0;font-family:var(--font-mono);font-size:.71rem;letter-spacing:.06em;color:var(--text-dim);list-style:none}
+  .helpbox summary::-webkit-details-marker{display:none}
+  .helpbox summary::before{content:"? ";color:var(--ink);font-weight:600}
+  .helpbox ol{margin:0 0 10px;padding-left:20px;font-size:.82rem;color:var(--text-dim)}
+  .helpbox li{margin-bottom:6px}
+  .helpbox p{margin:0 0 12px;font-size:.78rem;color:var(--text-faint);font-family:var(--font-mono)}
   .hidden{display:none !important}
   .hint{font-size:.75rem;color:var(--text-faint);margin:6px 0 0;font-family:var(--font-mono);overflow-wrap:anywhere}
   code{font-family:var(--font-mono);font-size:.86em;background:var(--surface-3);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
@@ -203,18 +210,30 @@
       </div>
 
       <div class="hidden" id="f-twilio">
+        <details class="helpbox">
+          <summary>Ye teen ID kahan se milengi?</summary>
+          <ol>
+            <li><b>Account banao:</b> twilio.com/try-twilio — email, password, apna number verify. Credit card nahi chahiye.</li>
+            <li><b>Account SID + Auth Token:</b> console.twilio.com kholo. Neeche <i>Account Info</i> panel me <b>Account SID</b> (AC se shuru, 34 characters) aur <b>Auth Token</b> (<i>Show</i> dabao) milta hai.</li>
+            <li><b>From number:</b> Console → Phone Numbers → Manage → <i>Buy a number</i> (trial me free, usually +1 US) — SMS capability wala lo. Ya signup ke end me jo number mila wo.</li>
+            <li><b>Apna Indian number verify karo:</b> Console → Phone Numbers → Manage → <i>Verified Caller IDs</i> → Add → +91 number → OTP. Ye step ke bina SMS nahi jayega (error 21608).</li>
+          </ol>
+          <p>Teeno values yahan daalne ke baad browser me save ho jati hain — dobara nahi daalni padengi.</p>
+        </details>
         <div class="field">
           <label class="lbl" for="twsid">Account SID</label>
           <input class="mono" type="text" id="twsid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+          <p class="hint">console.twilio.com → Account Info panel → Account SID</p>
         </div>
         <div class="field">
           <label class="lbl" for="twtoken">Auth Token</label>
           <input class="mono" type="password" id="twtoken" placeholder="console se copy karo" autocomplete="off">
+          <p class="hint">Usi panel me Auth Token ke aage “Show” dabao, phir copy</p>
         </div>
         <div class="field">
           <label class="lbl" for="twfrom">From (Twilio number)</label>
           <input class="mono" type="text" id="twfrom" placeholder="+1xxxxxxxxxx" autocomplete="off">
-          <p class="hint">Trial me <b>recipient number pehle verify</b> karna padta hai: Console → Phone Numbers → Verified Caller IDs.</p>
+          <p class="hint">Phone Numbers → Manage → Active numbers. Trial me <b>recipient number pehle verify</b> karna padta hai.</p>
         </div>
       </div>
 
