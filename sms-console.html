@@ -3,241 +3,128 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SMS Console — free SMS sender (HTML + CSS + JS)</title>
+<title>SMS Console — ek message, free</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#eef2f7;
-    --grid:rgba(15,36,56,.055);
-    --surface:#ffffff;
-    --surface-2:#f7fafc;
-    --surface-3:#eaf0f6;
-    --border:rgba(15,36,56,.13);
-    --border-strong:rgba(15,36,56,.26);
-    --text:#0f2438;
-    --text-dim:#5b7086;
-    --text-faint:#8698aa;
-    --ink:#0369a1;
-    --ink-dim:#e2eef7;
-    --teal:#0f766e;
-    --teal-dim:#e0f2f0;
-    --amber:#b45309;
-    --amber-dim:#fdf3e3;
-    --rose:#be123c;
-    --rose-dim:#fdeaee;
+    --bg:#eef2f7; --grid:rgba(15,36,56,.055);
+    --surface:#fff; --surface-2:#f7fafc; --surface-3:#eaf0f6;
+    --border:rgba(15,36,56,.13); --border-strong:rgba(15,36,56,.26);
+    --text:#0f2438; --text-dim:#5b7086; --text-faint:#8698aa;
+    --ink:#0369a1; --ink-dim:#e2eef7;
+    --teal:#0f766e; --teal-dim:#e0f2f0;
+    --amber:#b45309; --amber-dim:#fdf3e3;
+    --rose:#be123c; --rose-dim:#fdeaee;
     --shadow:0 1px 2px rgba(15,36,56,.05),0 8px 24px -16px rgba(15,36,56,.35);
     --font-body:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --font-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
   }
   @media (prefers-color-scheme: dark){
     :root{
-      --bg:#0b1520;
-      --grid:rgba(160,190,215,.055);
-      --surface:#111f2c;
-      --surface-2:#16283a;
-      --surface-3:#1c3247;
-      --border:rgba(160,190,215,.14);
-      --border-strong:rgba(160,190,215,.30);
-      --text:#e7eef5;
-      --text-dim:#9db1c4;
-      --text-faint:#6f859a;
-      --ink:#5eb3e0;
-      --ink-dim:#123044;
-      --teal:#4fb8ae;
-      --teal-dim:#12312f;
-      --amber:#e2a355;
-      --amber-dim:#33260f;
-      --rose:#f0728d;
-      --rose-dim:#3a1520;
+      --bg:#0b1520; --grid:rgba(160,190,215,.055);
+      --surface:#111f2c; --surface-2:#16283a; --surface-3:#1c3247;
+      --border:rgba(160,190,215,.14); --border-strong:rgba(160,190,215,.30);
+      --text:#e7eef5; --text-dim:#9db1c4; --text-faint:#6f859a;
+      --ink:#5eb3e0; --ink-dim:#123044;
+      --teal:#4fb8ae; --teal-dim:#12312f;
+      --amber:#e2a355; --amber-dim:#33260f;
+      --rose:#f0728d; --rose-dim:#3a1520;
       --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.9);
     }
   }
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
   body{
-    font-family:var(--font-body);
-    color:var(--text);
+    margin:0;font-family:var(--font-body);color:var(--text);line-height:1.55;
     background-color:var(--bg);
-    background-image:
-      linear-gradient(var(--grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-    background-size:28px 28px, 28px 28px;
-    -webkit-font-smoothing:antialiased;
-    line-height:1.55;
-    min-height:100vh;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:28px 28px,28px 28px;
+    -webkit-font-smoothing:antialiased;min-height:100vh;
   }
-  .wrap{max-width:1180px;margin:0 auto;padding:40px 24px 72px}
+  .wrap{max-width:760px;margin:0 auto;padding:36px 20px 64px}
 
-  /* ---------- header ---------- */
-  header.top{
-    display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px 28px;
-    padding-bottom:22px;border-bottom:1px solid var(--border-strong);margin-bottom:28px;
+  header.top{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-bottom:22px}
+  .brandmark{display:flex;align-items:center;gap:11px;min-width:0}
+  h1{font-size:clamp(1.35rem,4vw,1.7rem);margin:0;letter-spacing:-.02em;font-weight:600;line-height:1.15}
+  h1 small{display:block;font-family:var(--font-mono);font-size:.6rem;font-weight:400;letter-spacing:.15em;text-transform:uppercase;color:var(--text-faint);margin-top:6px}
+  .quota-pill{
+    margin-left:auto;font-family:var(--font-mono);font-size:.72rem;padding:7px 13px;border-radius:999px;
+    border:1px solid var(--teal);color:var(--teal);background:var(--teal-dim);white-space:nowrap;
   }
-  .brandmark{display:flex;align-items:center;gap:12px;min-width:0}
-  .brandmark svg{flex:none}
-  h1{
-    font-size:clamp(1.6rem,3.2vw,2.1rem);line-height:1.1;margin:0;
-    letter-spacing:-.02em;font-weight:600;
-  }
-  h1 small{
-    display:block;font-family:var(--font-mono);font-size:.62rem;font-weight:400;
-    letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);
-    margin-top:8px;
-  }
-  .top-meta{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-  .pill{
-    font-family:var(--font-mono);font-size:.68rem;letter-spacing:.04em;
-    padding:5px 10px;border-radius:999px;border:1px solid var(--border-strong);
-    color:var(--text-dim);background:var(--surface);white-space:nowrap;
-  }
-  .pill--free{color:var(--teal);border-color:var(--teal);background:var(--teal-dim)}
-  .pill--warn{color:var(--amber);border-color:var(--amber);background:var(--amber-dim)}
+  .quota-pill.used{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+  .quota-pill.unknown{border-color:var(--border-strong);color:var(--text-dim);background:var(--surface)}
 
-  /* ---------- layout ---------- */
-  .grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:start}
-  @media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+  .card{background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+  .card + .card{margin-top:18px}
 
-  .card{
-    background:var(--surface);border:1px solid var(--border);border-radius:14px;
-    padding:22px;box-shadow:var(--shadow);min-width:0;
-  }
-  .card--hero{padding:26px 26px 22px;border-color:var(--border-strong)}
-  .card--recessed{background:var(--surface-2);box-shadow:none}
-  .card + .card{margin-top:22px}
-
-  .section-label{
-    display:flex;align-items:center;gap:8px;
-    font-family:var(--font-mono);font-size:.66rem;font-weight:500;
-    letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint);
-    margin:0 0 16px;
-  }
-  .section-label::before{
-    content:"";width:6px;height:6px;border-radius:50%;background:var(--ink);flex:none;
-  }
-  .section-label--teal::before{background:var(--teal)}
-  .section-label--amber::before{background:var(--amber)}
-
-  /* ---------- form ---------- */
   .field{margin-bottom:16px}
   .field:last-child{margin-bottom:0}
-  label.lbl{
-    display:block;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.08em;
-    text-transform:uppercase;color:var(--text-dim);margin-bottom:7px;
-  }
+  label.lbl{display:block;font-family:var(--font-mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px}
   .row{display:flex;gap:10px;min-width:0}
   .row > *{min-width:0}
-  input[type=text],input[type=password],input[type=tel],select,textarea{
+  input,select,textarea{
     width:100%;font-family:var(--font-body);font-size:.95rem;color:var(--text);
-    background:var(--surface-2);border:1px solid var(--border-strong);
-    border-radius:9px;padding:11px 13px;outline:none;transition:border-color .15s,box-shadow .15s;
+    background:var(--surface-2);border:1px solid var(--border-strong);border-radius:9px;
+    padding:11px 13px;outline:none;transition:border-color .15s,box-shadow .15s;
   }
-  input[type=tel],input[type=text].mono,input[type=password].mono{font-family:var(--font-mono);letter-spacing:.02em}
-  input:focus,select:focus,textarea:focus{
-    border-color:var(--ink);box-shadow:0 0 0 3px var(--ink-dim);
-  }
-  textarea{resize:vertical;min-height:118px;line-height:1.5}
-  select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%235b7086' stroke-width='1.6' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px;cursor:pointer}
+  input:focus,select:focus,textarea:focus{border-color:var(--ink);box-shadow:0 0 0 3px var(--ink-dim)}
+  input[type=tel],.mono{font-family:var(--font-mono);letter-spacing:.02em}
+  textarea{resize:vertical;min-height:104px;line-height:1.5}
+  select{appearance:none;cursor:pointer;background-repeat:no-repeat;background-position:right 13px center;padding-right:34px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%235b7086' stroke-width='1.6' stroke-linecap='round'/></svg>")}
+  .cc{width:84px;flex:none}
 
-  .cc{width:88px;flex:none;font-family:var(--font-mono)}
-  .counter{
-    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
-    font-family:var(--font-mono);font-size:.72rem;color:var(--text-faint);margin-top:7px;
-  }
+  .counter{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--font-mono);font-size:.71rem;color:var(--text-faint);margin-top:7px}
   .counter b{color:var(--text-dim);font-weight:500}
-  .counter .over{color:var(--rose)}
 
   .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
-  .chip{
-    font-family:var(--font-mono);font-size:.72rem;padding:5px 10px;border-radius:999px;
-    border:1px dashed var(--border-strong);background:transparent;color:var(--text-dim);
-    cursor:pointer;transition:all .15s;
-  }
+  .chip{font-family:var(--font-mono);font-size:.71rem;padding:5px 10px;border-radius:999px;border:1px dashed var(--border-strong);background:transparent;color:var(--text-dim);cursor:pointer;transition:all .15s}
   .chip:hover{border-style:solid;border-color:var(--ink);color:var(--ink);background:var(--ink-dim)}
 
-  .btn{
-    font-family:var(--font-body);font-size:.9rem;font-weight:500;
-    padding:11px 20px;border-radius:9px;border:1px solid transparent;
-    cursor:pointer;transition:transform .1s,background .15s,opacity .15s;
-  }
+  .btn{font-family:var(--font-body);font-size:.92rem;font-weight:500;padding:12px 22px;border-radius:9px;border:1px solid transparent;cursor:pointer;transition:transform .1s,opacity .15s,background .15s}
   .btn:active{transform:translateY(1px)}
-  .btn--primary{background:var(--ink);color:#fff;min-width:132px}
+  .btn--primary{background:var(--ink);color:#fff;min-width:150px}
   @media (prefers-color-scheme: dark){.btn--primary{color:#08131d}}
-  .btn--primary:hover{opacity:.9}
   .btn--ghost{background:transparent;border-color:var(--border-strong);color:var(--text-dim)}
   .btn--ghost:hover{border-color:var(--ink);color:var(--ink)}
-  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
-  .actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:20px}
-  .dryrun{
-    display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:.74rem;
-    color:var(--text-dim);cursor:pointer;user-select:none;padding:8px 12px;border-radius:9px;
-    border:1px dashed var(--border-strong);
-  }
-  .dryrun:hover{border-style:solid;border-color:var(--ink);color:var(--ink)}
-  .dryrun input{accent-color:var(--ink);width:14px;height:14px;margin:0;cursor:pointer}
-  .dryrun.on{background:var(--amber-dim);border-color:var(--amber);border-style:solid;color:var(--amber)}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px}
 
-  /* ---------- status ---------- */
-  .status{
-    margin-top:16px;border-radius:10px;padding:12px 14px;font-family:var(--font-mono);
-    font-size:.78rem;line-height:1.5;display:none;border:1px solid var(--border);
-    overflow-wrap:anywhere;
+  .warn{
+    display:none;margin-top:12px;padding:10px 13px;border-radius:9px;font-size:.82rem;
+    background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber);
   }
-  .status.show{display:block;animation:fadeUp .22s ease both}
+  .warn.show{display:block}
+
+  .status{margin-top:14px;border-radius:10px;padding:12px 14px;font-family:var(--font-mono);font-size:.78rem;line-height:1.5;display:none;border:1px solid var(--border);overflow-wrap:anywhere}
+  .status.show{display:block}
   .status--ok{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
   .status--err{background:var(--rose-dim);border-color:var(--rose);color:var(--rose)}
   .status--info{background:var(--surface-3);border-color:var(--border-strong);color:var(--text-dim)}
-  .status pre{margin:8px 0 0;white-space:pre-wrap;word-break:break-word;font-size:.74rem;opacity:.92}
+  .status pre{margin:8px 0 0;white-space:pre-wrap;word-break:break-word;font-size:.73rem;opacity:.9}
 
-  /* ---------- history ---------- */
-  .hist{list-style:none;margin:0;padding:0;max-height:340px;overflow-y:auto}
-  .hist li{
-    position:relative;padding:11px 0 11px 16px;border-bottom:1px dashed var(--border);
-    font-size:.83rem;overflow-wrap:anywhere;
-  }
+  .hist{list-style:none;margin:0;padding:0}
+  .hist li{position:relative;padding:10px 0 10px 16px;border-bottom:1px dashed var(--border);font-size:.83rem;overflow-wrap:anywhere}
   .hist li:last-child{border-bottom:none}
-  .hist li::before{
-    content:"";position:absolute;left:0;top:16px;width:6px;height:6px;border-radius:50%;
-    background:var(--teal);
-  }
+  .hist li::before{content:"";position:absolute;left:0;top:15px;width:6px;height:6px;border-radius:50%;background:var(--teal)}
   .hist li.fail::before{background:var(--rose)}
-  .hist .h-top{display:flex;justify-content:space-between;gap:10px;font-family:var(--font-mono);font-size:.72rem;color:var(--text-faint);margin-bottom:2px}
+  .hist .h-top{display:flex;justify-content:space-between;gap:10px;font-family:var(--font-mono);font-size:.71rem;color:var(--text-faint);margin-bottom:2px}
   .hist .h-num{color:var(--text-dim);font-weight:500}
-  .hist .h-msg{color:var(--text);opacity:.85}
-  .empty{
-    font-size:.83rem;color:var(--text-faint);font-style:italic;padding:10px 0;
-  }
 
-  /* ---------- notes ---------- */
-  .notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:28px}
-  .note{
-    background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--ink);
-    border-radius:10px;padding:16px 18px;font-size:.85rem;color:var(--text-dim);
+  details.adv{margin-top:18px;border:1px solid var(--border);border-radius:12px;background:var(--surface-2);padding:0 18px}
+  details.adv summary{
+    cursor:pointer;padding:14px 0;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--text-dim);list-style:none;
   }
-  .note h3{
-    font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
-    margin:0 0 8px;color:var(--text);
-  }
-  .note p{margin:0}
-  .note p + p{margin-top:8px}
-  .note--amber{border-left-color:var(--amber)}
-  .note--rose{border-left-color:var(--rose)}
-  code{
-    font-family:var(--font-mono);font-size:.86em;background:var(--surface-3);
-    padding:1px 5px;border-radius:4px;color:var(--text);overflow-wrap:anywhere;
-  }
-  .hint{font-size:.76rem;color:var(--text-faint);margin:6px 0 0;font-family:var(--font-mono)}
-  footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--border);font-size:.76rem;color:var(--text-faint);font-family:var(--font-mono)}
-
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary::before{content:"+ ";color:var(--ink)}
+  details.adv[open] summary::before{content:"– "}
+  details.adv .adv-body{padding-bottom:18px}
   .hidden{display:none !important}
-
-  @keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-  .anim{animation:fadeUp .35s ease both}
-  .anim:nth-child(2){animation-delay:.06s}
-  @media (prefers-reduced-motion: reduce){
-    *{animation:none !important;transition:none !important}
-  }
+  .hint{font-size:.75rem;color:var(--text-faint);margin:6px 0 0;font-family:var(--font-mono);overflow-wrap:anywhere}
+  code{font-family:var(--font-mono);font-size:.86em;background:var(--surface-3);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+  footer{margin-top:30px;font-size:.74rem;color:var(--text-faint);font-family:var(--font-mono);text-align:center}
 </style>
 </head>
 <body>
@@ -245,182 +132,125 @@
 
   <header class="top">
     <div class="brandmark">
-      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
-        <rect x="1" y="1" width="32" height="32" rx="9" stroke="currentColor" stroke-opacity=".35" style="color:var(--text)"/>
-        <rect x="10" y="6" width="14" height="22" rx="3" stroke="currentColor" stroke-width="1.6" style="color:var(--ink)"/>
-        <path d="M14 24h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="color:var(--ink)"/>
-        <path d="M13 12.5l8-3.5-8-3.5v7z" fill="currentColor" style="color:var(--teal)"/>
+      <svg width="30" height="30" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+        <rect x="10" y="5" width="14" height="24" rx="3" stroke="var(--ink)" stroke-width="1.7"/>
+        <path d="M14 25h6" stroke="var(--ink)" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M13 12l8-3.5-8-3.5v7z" fill="var(--teal)"/>
       </svg>
       <div>
-        <h1>SMS Console<small>HTML · CSS · JS &nbsp;/&nbsp; free-tier SMS API</small></h1>
+        <h1>SMS Console<small>din mein ek free message</small></h1>
       </div>
     </div>
-    <div class="top-meta">
-      <span class="pill pill--free">free key: 1 msg / day</span>
-      <span class="pill">no build step</span>
-      <span class="pill pill--warn">browser-side key</span>
-    </div>
+    <span class="quota-pill unknown" id="quotaPill">quota check ho raha hai…</span>
   </header>
 
-  <div class="grid">
-
-    <!-- ============ LEFT: compose ============ -->
-    <div>
-      <section class="card card--hero anim">
-        <p class="section-label">Compose</p>
-
-        <div class="field">
-          <label class="lbl" for="phone">Recipient number</label>
-          <div class="row">
-            <input class="cc" type="text" id="cc" value="+91" aria-label="Country code" maxlength="5">
-            <input type="tel" id="phone" placeholder="98765 43210" inputmode="tel" autocomplete="off" aria-label="Phone number">
-          </div>
-          <p class="hint">E.164 format bheja jata hai, e.g. +919876543210</p>
-        </div>
-
-        <div class="field">
-          <label class="lbl" for="msg">Message</label>
-          <textarea id="msg" placeholder="Namaste! Ye ek test SMS hai." maxlength="1000"></textarea>
-          <div class="counter">
-            <span><b id="len">0</b> chars · <b id="seg">1</b> segment · <span id="enc">GSM-7</span></span>
-            <span id="segNote">160 chars per segment</span>
-          </div>
-          <div class="chips">
-            <button class="chip" type="button" data-t="Test message from SMS Console.">Test message</button>
-            <button class="chip" type="button" data-t="Aapka OTP hai 482913. 10 minute me expire hoga. Kisi ko na batayein.">OTP template</button>
-            <button class="chip" type="button" data-t="Reminder: kal subah 10 baje meeting hai.">Reminder</button>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button class="btn btn--primary" id="send" type="button">Send SMS</button>
-          <button class="btn btn--ghost" id="quota" type="button">Check quota</button>
-          <label class="dryrun" id="dryWrap">
-            <input type="checkbox" id="dryrun">
-            dry run · SMS nahi jayega
-          </label>
-          <span id="spin" class="hint hidden">sending…</span>
-        </div>
-
-        <div class="status" id="status" role="status" aria-live="polite"></div>
-      </section>
-
-      <section class="card anim">
-        <p class="section-label section-label--teal">Delivery log</p>
-        <ul class="hist" id="hist"></ul>
-        <p class="empty" id="histEmpty">Abhi koi SMS nahi bheja gaya.</p>
-        <div class="actions" style="margin-top:14px">
-          <button class="btn btn--ghost" id="clearHist" type="button">Clear log</button>
-        </div>
-      </section>
+  <section class="card">
+    <div class="field">
+      <label class="lbl" for="phone">Recipient number</label>
+      <div class="row">
+        <input class="cc mono" type="text" id="cc" value="+91" maxlength="5" aria-label="Country code">
+        <input type="tel" id="phone" placeholder="98765 43210" inputmode="tel" autocomplete="off" aria-label="Phone number">
+      </div>
+      <p class="hint">Apna hi number daalo — pehla test wahin karo.</p>
     </div>
 
-    <!-- ============ RIGHT: provider ============ -->
-    <div>
-      <section class="card card--recessed anim">
-        <p class="section-label section-label--amber">Provider</p>
+    <div class="field">
+      <label class="lbl" for="msg">Message</label>
+      <textarea id="msg" placeholder="Namaste! Ye ek test message hai." maxlength="700"></textarea>
+      <div class="counter">
+        <span><b id="len">0</b> chars · <b id="seg">1</b> segment · <span id="enc">GSM-7</span></span>
+        <span id="segNote">160 chars per segment</span>
+      </div>
+      <div class="chips">
+        <button class="chip" type="button" data-t="Test message from SMS Console.">Test message</button>
+        <button class="chip" type="button" data-t="Aapka OTP hai 482913. 10 minute me expire hoga.">OTP</button>
+        <button class="chip" type="button" data-t="Reminder: kal subah 10 baje meeting hai.">Reminder</button>
+      </div>
+    </div>
 
+    <div class="warn" id="urlWarn">
+      Message mein link hai. Textbelt free key URLs block karta hai — link hata do, warna SMS fail hoga.
+    </div>
+
+    <div class="actions">
+      <button class="btn btn--primary" id="send" type="button">Send SMS</button>
+      <button class="btn btn--ghost" id="refresh" type="button">Quota refresh</button>
+      <span class="hint" id="spin" style="display:none">bhej raha hoon…</span>
+    </div>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <p class="lbl" style="margin-bottom:12px">Aaj ke attempts</p>
+    <ul class="hist" id="hist"></ul>
+    <p class="hint" id="histEmpty" style="display:none">Abhi kuch nahi bheja.</p>
+  </section>
+
+  <details class="adv">
+    <summary>Advanced — apna API key ya doosra provider</summary>
+    <div class="adv-body">
+      <div class="field">
+        <label class="lbl" for="provider">Provider</label>
+        <select id="provider">
+          <option value="textbelt-free">Textbelt free key (1 msg/day)</option>
+          <option value="textbelt-own">Textbelt — apna paid key</option>
+          <option value="gateway">Own SIM gateway (Android)</option>
+          <option value="fast2sms">Fast2SMS DLT (proxy chahiye)</option>
+        </select>
+      </div>
+
+      <div class="field hidden" id="f-key">
+        <label class="lbl" for="apikey">Textbelt API key</label>
+        <input class="mono" type="password" id="apikey" placeholder="paste your key" autocomplete="off">
+      </div>
+
+      <div class="hidden" id="f-gw">
         <div class="field">
-          <label class="lbl" for="provider">API</label>
-          <select id="provider">
-            <option value="textbelt-free">Textbelt — free key (1 msg/day)</option>
-            <option value="textbelt-own">Textbelt — apna paid key</option>
-            <option value="gateway">Own SIM gateway (Android / Textbee)</option>
-            <option value="fast2sms">Fast2SMS — DLT header (India, proxy)</option>
+          <label class="lbl" for="gwurl">Gateway base URL</label>
+          <input class="mono" type="text" id="gwurl" value="https://api.sms-gate.app">
+        </div>
+        <div class="field">
+          <label class="lbl" for="gwuser">Username</label>
+          <input class="mono" type="text" id="gwuser" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="lbl" for="gwpass">Password</label>
+          <input class="mono" type="password" id="gwpass" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="hidden" id="f-f2s">
+        <div class="field">
+          <label class="lbl" for="sender">Sender ID / DLT header</label>
+          <input class="mono" type="text" id="sender" placeholder="IXCDIS" maxlength="6" style="text-transform:uppercase">
+          <p class="hint">Phone par aise dikhega: <code id="senderPreview">BP-______-S</code></p>
+        </div>
+        <div class="field">
+          <label class="lbl" for="f2sroute">Route</label>
+          <select id="f2sroute">
+            <option value="dlt">DLT (approved template)</option>
+            <option value="q">Quick SMS (random header)</option>
           </select>
         </div>
-
-        <div class="field hidden" id="f-key">
-          <label class="lbl" for="apikey">Textbelt API key</label>
-          <input class="mono" type="password" id="apikey" placeholder="paste your key" autocomplete="off">
-          <p class="hint">Key yahan localStorage me save hoti hai, server par nahi jati.</p>
-        </div>
-
-        <div class="hidden" id="f-gw">
+        <div class="hidden" id="f-tpl">
           <div class="field">
-            <label class="lbl" for="gwurl">Gateway base URL</label>
-            <input class="mono" type="text" id="gwurl" value="https://api.sms-gate.app" placeholder="https://api.sms-gate.app">
-            <p class="hint">android-sms-gateway / textbee ka apna endpoint</p>
+            <label class="lbl" for="tplid">DLT template ID</label>
+            <input class="mono" type="text" id="tplid" placeholder="1707xxxxxxxxxxxxxx">
           </div>
           <div class="field">
-            <label class="lbl" for="gwuser">Username</label>
-            <input class="mono" type="text" id="gwuser" placeholder="gateway user" autocomplete="off">
-          </div>
-          <div class="field">
-            <label class="lbl" for="gwpass">Password</label>
-            <input class="mono" type="password" id="gwpass" placeholder="gateway password" autocomplete="off">
+            <label class="lbl" for="vars">Variables (comma separated)</label>
+            <input class="mono" type="text" id="vars" placeholder="Rahul,482913">
           </div>
         </div>
+        <p class="hint">Ye mode <code>server.js</code> ke saath local chalta hai, static hosting par nahi.</p>
+      </div>
 
-        <div class="hidden" id="f-f2s">
-          <div class="field">
-            <label class="lbl" for="sender">Sender ID / DLT header</label>
-            <input class="mono" type="text" id="sender" placeholder="IXCDIS" maxlength="6" style="text-transform:uppercase">
-            <p class="hint">6 letters, sirf apna DLT-approved header. Phone par aise dikhega: <code id="senderPreview">BP-______-S</code></p>
-          </div>
-          <div class="field">
-            <label class="lbl" for="f2sroute">Route</label>
-            <select id="f2sroute">
-              <option value="dlt">DLT (approved template, apna header)</option>
-              <option value="q">Quick SMS (header random hota hai)</option>
-            </select>
-          </div>
-          <div class="hidden" id="f-tpl">
-            <div class="field">
-              <label class="lbl" for="tplid">DLT template ID</label>
-              <input class="mono" type="text" id="tplid" placeholder="1707xxxxxxxxxxxxxx">
-            </div>
-            <div class="field">
-              <label class="lbl" for="vars">Variables (comma separated)</label>
-              <input class="mono" type="text" id="vars" placeholder="Rahul,482913">
-            </div>
-          </div>
-          <p class="hint">Is mode mein API key browser mein nahi jati — request <code>/api/send</code> par jati hai, key proxy ke env se aati hai.</p>
-        </div>
+      <p class="hint" id="providerNote">Textbelt ka free key: din mein 1 SMS, IP-based, koi signup nahi.</p>
+    </div>
+  </details>
 
-        <p class="hint" id="providerNote">Textbelt ka <code>textbelt</code> key din me 1 SMS free deta hai, koi signup nahi.</p>
-      </section>
-
-      <section class="card anim">
-        <p class="section-label">Request preview</p>
-        <div class="status show status--info" style="margin-top:0">
-          <div style="margin-bottom:6px">POST <span id="pvUrl">https://textbelt.com/text</span></div>
-          <pre id="pvBody">{ }</pre>
-        </div>
-        <p class="hint">Jo exact request jayegi, wahi yahan dikh rahi hai.</p>
-      </section>
-    </div>
-  </div>
-
-  <!-- ============ NOTES ============ -->
-  <div class="notes">
-    <div class="note">
-      <h3>Free ki sachchai</h3>
-      <p>Textbelt free key se <b>1 SMS per day</b> jata hai, aur wo bhi Textbelt ke apne route se. Har number par unlimited free SMS dene wala koi public API exist nahi karta — delivery ka kharcha carrier leta hai.</p>
-    </div>
-    <div class="note note--amber">
-      <h3>Key browser me mat rakho</h3>
-      <p>Yeh page client-side hai, to paid key bhi browser me visible hoti hai. Production me ek chhota proxy (Node/Express ya Cloudflare Worker) banao, key wahan rakho, aur page ko <code>/api/send</code> par point karo.</p>
-    </div>
-    <div class="note note--rose">
-      <h3>CORS / file:// warning</h3>
-      <p>Page ko direct double-click karke <code>file://</code> se kholne par browser origin <code>null</code> bhejta hai aur request block ho sakti hai. Folder me <code>python3 -m http.server 8000</code> chalao, phir <code>localhost:8000/sms-console.html</code> kholo.</p>
-    </div>
-    <div class="note">
-      <h3>Bina paise, bina limit</h3>
-      <p>Apna purana Android phone + apni SIM = genuinely free unlimited. <code>capcom6/android-sms-gateway</code> ya <code>textbee</code> install karo, upar provider me "Own SIM gateway" chuno, aur wahi number gateway dega.</p>
-    </div>
-    <div class="note note--amber">
-      <h3>India rules</h3>
-      <p>Commercial/bulk ya OTP traffic ke liye TRAI ke DLT registration ki zarurat hoti hai. Personal test messages par ye laagoo nahi hota, par bulk bhejne se pehle check kar lena.</p>
-    </div>
-    <div class="note">
-      <h3>Kabhi bhi spam nahi</h3>
-      <p>Sirf apne number ya jiski permission hai usko bhejo. Random numbers par bulk SMS bhejna illegal hai aur number block ho jata hai.</p>
-    </div>
-  </div>
-
-  <footer>Single file · no framework · localStorage for settings &amp; log · Textbelt API + Android SMS Gateway compatible</footer>
+  <footer>Single file · no framework · Textbelt API</footer>
 </div>
 
 <script>
@@ -428,342 +258,290 @@
   "use strict";
 
   var $ = function(id){ return document.getElementById(id); };
-  var providerEl = $('provider'), phoneEl = $('phone'), ccEl = $('cc'), msgEl = $('msg');
-  var keyEl = $('apikey'), gwUrlEl = $('gwurl'), gwUserEl = $('gwuser'), gwPassEl = $('gwpass');
-  var sendBtn = $('send'), quotaBtn = $('quota'), spin = $('spin'), statusEl = $('status');
-  var dryEl = $('dryrun'), dryWrap = $('dryWrap');
-  var senderEl = $('sender'), f2sRouteEl = $('f2sroute'), tplEl = $('tplid'), varsEl = $('vars');
-  var histEl = $('hist'), histEmpty = $('histEmpty');
-  var LS_SET = 'smsconsole.settings.v1', LS_HIST = 'smsconsole.history.v1';
+  var providerEl=$('provider'), phoneEl=$('phone'), ccEl=$('cc'), msgEl=$('msg');
+  var keyEl=$('apikey'), gwUrlEl=$('gwurl'), gwUserEl=$('gwuser'), gwPassEl=$('gwpass');
+  var senderEl=$('sender'), f2sRouteEl=$('f2sroute'), tplEl=$('tplid'), varsEl=$('vars');
+  var sendBtn=$('send'), refreshBtn=$('refresh'), spin=$('spin'), statusEl=$('status');
+  var quotaPill=$('quotaPill'), urlWarn=$('urlWarn');
+  var histEl=$('hist'), histEmpty=$('histEmpty');
 
-  /* ---------- state ---------- */
+  var LS_SET='smsconsole.set.v4', LS_HIST='smsconsole.hist.v4', LS_USED='smsconsole.used.v4';
+
+  function todayKey(){ return new Date().toISOString().slice(0,10); }
+
+  /* ---------------- settings ---------------- */
   function loadSettings(){
     try{
-      var s = JSON.parse(localStorage.getItem(LS_SET) || '{}');
-      if(s.provider) providerEl.value = s.provider;
-      if(s.cc) ccEl.value = s.cc;
-      if(s.apikey) keyEl.value = s.apikey;
-      if(s.gwurl) gwUrlEl.value = s.gwurl;
-      if(s.gwuser) gwUserEl.value = s.gwuser;
-      if(s.gwpass) gwPassEl.value = s.gwpass;
-      if(s.sender) senderEl.value = s.sender;
-      if(s.f2sroute) f2sRouteEl.value = s.f2sroute;
-      if(s.tplid) tplEl.value = s.tplid;
-      if(s.vars) varsEl.value = s.vars;
+      var s=JSON.parse(localStorage.getItem(LS_SET)||'{}');
+      if(s.provider) providerEl.value=s.provider;
+      if(s.cc) ccEl.value=s.cc;
+      if(s.apikey) keyEl.value=s.apikey;
+      if(s.gwurl) gwUrlEl.value=s.gwurl;
+      if(s.gwuser) gwUserEl.value=s.gwuser;
+      if(s.gwpass) gwPassEl.value=s.gwpass;
+      if(s.sender) senderEl.value=s.sender;
+      if(s.f2sroute) f2sRouteEl.value=s.f2sroute;
+      if(s.tplid) tplEl.value=s.tplid;
+      if(s.vars) varsEl.value=s.vars;
     }catch(e){}
   }
   function saveSettings(){
     try{
       localStorage.setItem(LS_SET, JSON.stringify({
-        provider: providerEl.value, cc: ccEl.value, apikey: keyEl.value,
-        gwurl: gwUrlEl.value, gwuser: gwUserEl.value, gwpass: gwPassEl.value,
-        sender: senderEl.value, f2sroute: f2sRouteEl.value, tplid: tplEl.value, vars: varsEl.value
+        provider:providerEl.value, cc:ccEl.value, apikey:keyEl.value,
+        gwurl:gwUrlEl.value, gwuser:gwUserEl.value, gwpass:gwPassEl.value,
+        sender:senderEl.value, f2sroute:f2sRouteEl.value, tplid:tplEl.value, vars:varsEl.value
       }));
     }catch(e){}
   }
-  function loadHist(){
-    try{ return JSON.parse(localStorage.getItem(LS_HIST) || '[]'); }catch(e){ return []; }
+
+  /* ---------------- daily usage (free key) ---------------- */
+  function usedToday(){
+    try{ return localStorage.getItem(LS_USED) === todayKey(); }catch(e){ return false; }
   }
-  function saveHist(h){
-    try{ localStorage.setItem(LS_HIST, JSON.stringify(h.slice(0,50))); }catch(e){}
+  function markUsed(){
+    try{ localStorage.setItem(LS_USED, todayKey()); }catch(e){}
   }
 
-  /* ---------- provider UI ---------- */
+  /* ---------------- quota ---------------- */
+  var quotaState = 'unknown'; // 'ok' | 'used' | 'unknown'
+
+  function paintQuota(remaining){
+    if(remaining === null || remaining === undefined){
+      quotaState='unknown';
+      quotaPill.className='quota-pill unknown';
+      quotaPill.textContent='quota: pata nahi chala';
+    }else if(remaining > 0){
+      quotaState='ok';
+      quotaPill.className='quota-pill';
+      quotaPill.textContent='aaj ka free message: available';
+    }else{
+      quotaState='used';
+      quotaPill.className='quota-pill used';
+      quotaPill.textContent='aaj ka free message: use ho gaya';
+    }
+    syncSendState();
+  }
+
+  function refreshQuota(silent){
+    if(providerEl.value !== 'textbelt-free'){ paintQuota(null); return; }
+    if(usedToday()){
+      // server quota may say 1, but this browser already sent today
+      paintQuota(0); return;
+    }
+    if(!silent) quotaPill.textContent='quota check ho raha hai…';
+    fetch('https://textbelt.com/quota/textbelt', {cache:'no-store'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(typeof d.quotaRemaining === 'number') paintQuota(d.quotaRemaining);
+        else paintQuota(null);
+      })
+      .catch(function(){ paintQuota(null); });
+  }
+
+  function syncSendState(){
+    var locked = (providerEl.value === 'textbelt-free') && (quotaState === 'used' || usedToday());
+    sendBtn.disabled = locked;
+    sendBtn.textContent = locked ? 'Aaj ka message bhej diya' : 'Send SMS';
+  }
+
+  /* ---------------- provider UI ---------------- */
   function syncProvider(){
     var p = providerEl.value;
-    $('f-key').classList.toggle('hidden', p === 'textbelt-free' || p === 'gateway');
+    $('f-key').classList.toggle('hidden', p === 'textbelt-free' || p === 'gateway' || p === 'fast2sms');
     $('f-gw').classList.toggle('hidden', p !== 'gateway');
-    quotaBtn.classList.toggle('hidden', p === 'gateway' || p === 'fast2sms');
-    dryWrap.classList.toggle('hidden', p === 'gateway' || p === 'fast2sms');
-    dryWrap.classList.toggle('on', dryEl.checked);
     $('f-f2s').classList.toggle('hidden', p !== 'fast2sms');
     $('f-tpl').classList.toggle('hidden', p !== 'fast2sms' || f2sRouteEl.value !== 'dlt');
-    var sid = (senderEl.value || '').trim().toUpperCase();
-    $('senderPreview').textContent = 'BP-' + (sid || '______') + '-S';
-    var note = $('providerNote');
-    if(p === 'textbelt-free'){
-      note.innerHTML = 'Textbelt ka <code>textbelt</code> key din me 1 SMS free deta hai, koi signup nahi.';
-    }else if(p === 'textbelt-own'){
-      note.innerHTML = 'textbelt.com par key banao — quota kharidne par 100+ countries support. Free key ki tarah CORS-enabled hai.';
-    }else if(p === 'gateway'){
-      note.innerHTML = 'Aapke phone ki SIM SMS bhejegi. <code>android-sms-gateway</code> app + apna server, ya textbee.dev ka hosted endpoint use karo.';
-    }else{
-      note.innerHTML = 'Fast2SMS DLT route — header aapka registered hona chahiye, warna operator reject karega. Key <code>server.js</code> ke env me rehti hai.';
-    }
-    updatePreview();
-    saveSettings();
+    var sid=(senderEl.value||'').trim().toUpperCase();
+    $('senderPreview').textContent='BP-'+(sid||'______')+'-S';
+
+    var note=$('providerNote');
+    if(p === 'textbelt-free') note.innerHTML='Textbelt ka free key: din mein 1 SMS, IP-based, koi signup nahi.';
+    else if(p === 'textbelt-own') note.innerHTML='Apna paid key — quota zyada, 100+ countries. Key browser me rehti hai, isliye public page par na daalo.';
+    else if(p === 'gateway') note.innerHTML='Aapke phone ki SIM bhejegi — <code>android-sms-gateway</code> ya textbee ke saath.';
+    else note.innerHTML='Fast2SMS DLT route — header aapka registered hona chahiye. Ye <code>server.js</code> proxy se chalta hai.';
+
+    updatePreview(); syncSendState(); saveSettings();
+    if(p === 'textbelt-free') refreshQuota(true);
   }
 
-  /* ---------- payload builders ---------- */
+  /* ---------------- request ---------------- */
   function fullNumber(){
-    var cc = (ccEl.value || '').trim().replace(/\s+/g,'');
-    if(cc && cc.charAt(0) !== '+') cc = '+' + cc.replace(/\D/g,'');
-    var n = (phoneEl.value || '').replace(/[\s\-\(\)]/g,'');
-    if(n.charAt(0) === '+') return n;
+    var cc=(ccEl.value||'').trim().replace(/\s+/g,'');
+    if(cc && cc.charAt(0)!=='+') cc='+'+cc.replace(/\D/g,'');
+    var n=(phoneEl.value||'').replace(/[\s\-\(\)]/g,'');
+    if(n.charAt(0)==='+') return n;
     return cc + n.replace(/\D/g,'');
   }
   function currentKey(){
-    var p = providerEl.value;
-    var k = (p === 'textbelt-free') ? 'textbelt' : (keyEl.value || '').trim();
-    // Textbelt: key + "_test" validates without spending quota
-    if(k && dryEl.checked) k += '_test';
-    return k;
+    var p=providerEl.value;
+    if(p === 'textbelt-free') return 'textbelt';
+    return (keyEl.value||'').trim();
   }
   function buildRequest(){
-    var p = providerEl.value;
-    var num = fullNumber();
-    var text = msgEl.value || '';
+    var p=providerEl.value, num=fullNumber(), text=msgEl.value||'';
     if(p === 'fast2sms'){
-      var route = f2sRouteEl.value;
-      var body = {
-        provider: 'fast2sms',
-        numbers: num.replace(/^\+/, ''),
-        route: route,
-        sender_id: (senderEl.value || '').trim().toUpperCase()
-      };
-      if(route === 'dlt'){
-        body.message = (tplEl.value || '').trim();
-        body.variables_values = (varsEl.value || '').trim();
-      }else{
-        body.message = text;
-        body.language = 'english';
-      }
-      return { url: '/api/send', headers: { 'Content-Type':'application/json' }, auth: false, body: body };
+      var route=f2sRouteEl.value;
+      var body={provider:'fast2sms', numbers:num.replace(/^\+/,''), route:route,
+                sender_id:(senderEl.value||'').trim().toUpperCase()};
+      if(route === 'dlt'){ body.message=(tplEl.value||'').trim(); body.variables_values=(varsEl.value||'').trim(); }
+      else { body.message=text; body.language='english'; }
+      return {url:'/api/send', headers:{'Content-Type':'application/json'}, auth:false, body:body};
     }
     if(p === 'gateway'){
-      var base = (gwUrlEl.value || '').trim().replace(/\/+$/,'');
-      return {
-        url: base + '/3rdparty/v1/messages',
-        headers: { 'Content-Type':'application/json' },
-        auth: true,
-        body: { message: text, phoneNumbers: [num] }
-      };
+      var base=(gwUrlEl.value||'').trim().replace(/\/+$/,'');
+      return {url:base+'/3rdparty/v1/messages', headers:{'Content-Type':'application/json'}, auth:true,
+              body:{message:text, phoneNumbers:[num]}};
     }
-    return {
-      url: 'https://textbelt.com/text',
-      headers: { 'Content-Type':'application/json' },
-      auth: false,
-      body: { phone: num, message: text, key: currentKey() }
-    };
+    return {url:'https://textbelt.com/text', headers:{'Content-Type':'application/json'}, auth:false,
+            body:{phone:num, message:text, key:currentKey()}};
   }
   function updatePreview(){
-    var r = buildRequest();
-    $('pvUrl').textContent = r.url;
-    var shown = Object.assign({}, r.body);
-    if(shown.key && shown.key !== 'textbelt' && shown.key !== 'textbelt_test'){
-      shown.key = String(shown.key).slice(0, 3) + '•••••• (hidden)';
-    }
-    $('pvBody').textContent = JSON.stringify(shown, null, 2);
+    var r=buildRequest();
+    var b=Object.assign({}, r.body);
+    if(b.key && b.key !== 'textbelt') b.key=String(b.key).slice(0,3)+'••••••';
+    // preview not shown in this build; kept for the advanced panel note
   }
 
-  /* ---------- counters ---------- */
-  var GSM = /^[\u0000-\u007F£¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉÄÖÑÜ§¿äöñüà\n\r]*$/;
+  /* ---------------- counter + url check ---------------- */
+  var GSM=/^[\u0000-\u007F£¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉÄÖÑÜ§¿äöñüà\n\r]*$/;
   function updateCounter(){
-    var t = msgEl.value || '';
-    var unicode = !GSM.test(t);
-    var per = unicode ? 70 : 160, multi = unicode ? 67 : 153;
-    var len = t.length;
-    var segs = len === 0 ? 1 : (len <= per ? 1 : Math.ceil(len / multi));
-    $('len').textContent = len;
-    $('seg').textContent = segs;
-    $('enc').textContent = unicode ? 'Unicode' : 'GSM-7';
-    $('segNote').textContent = (unicode ? '70' : '160') + ' chars per segment';
-    $('seg').parentElement.classList.toggle('over', segs > 3);
-    updatePreview();
+    var t=msgEl.value||'', unicode=!GSM.test(t);
+    var per=unicode?70:160, multi=unicode?67:153, len=t.length;
+    var segs=len===0?1:(len<=per?1:Math.ceil(len/multi));
+    $('len').textContent=len; $('seg').textContent=segs;
+    $('enc').textContent=unicode?'Unicode':'GSM-7';
+    $('segNote').textContent=(unicode?'70':'160')+' chars per segment';
+    urlWarn.classList.toggle('show', /(https?:\/\/|www\.)/i.test(t));
   }
 
-  /* ---------- status ---------- */
+  /* ---------------- status ---------------- */
   function setStatus(kind, html){
-    statusEl.className = 'status show status--' + kind;
-    statusEl.innerHTML = html;
+    statusEl.className='status show status--'+kind;
+    statusEl.innerHTML=html;
   }
   function esc(s){
-    return String(s).replace(/[&<>"']/g, function(c){
+    return String(s).replace(/[&<>"']/g,function(c){
       return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
     });
   }
 
-  /* ---------- history ---------- */
+  /* ---------------- history ---------------- */
+  function loadHist(){ try{ return JSON.parse(localStorage.getItem(LS_HIST)||'[]'); }catch(e){ return []; } }
+  function saveHist(h){ try{ localStorage.setItem(LS_HIST, JSON.stringify(h.slice(0,30))); }catch(e){} }
   function renderHist(){
-    var h = loadHist();
-    histEl.innerHTML = '';
-    histEmpty.style.display = h.length ? 'none' : 'block';
-    h.forEach(function(item){
-      var li = document.createElement('li');
-      if(!item.ok) li.className = 'fail';
-      var when = new Date(item.at).toLocaleString();
-      li.innerHTML = '<div class="h-top"><span class="h-num">' + esc(item.to) + '</span><span>' + esc(when) + '</span></div>' +
-                     '<div class="h-msg">' + esc(item.msg) + '</div>';
+    var h=loadHist(); histEl.innerHTML='';
+    histEmpty.style.display=h.length?'none':'block';
+    h.forEach(function(it){
+      var li=document.createElement('li');
+      if(!it.ok) li.className='fail';
+      li.innerHTML='<div class="h-top"><span class="h-num">'+esc(it.to)+'</span><span>'+esc(new Date(it.at).toLocaleString())+'</span></div>'+
+                   '<div>'+esc(it.msg)+'</div>';
       histEl.appendChild(li);
     });
   }
-  function addHist(entry){
-    var h = loadHist();
-    h.unshift(entry);
-    saveHist(h);
-    renderHist();
+  function addHist(e){ var h=loadHist(); h.unshift(e); saveHist(h); renderHist(); }
+
+  /* ---------------- send ---------------- */
+  function sending(on){
+    sendBtn.disabled=on;
+    spin.style.display=on?'inline':'none';
+    if(!on) syncSendState();
   }
 
-  /* ---------- send ---------- */
-  function sending(on){
-    sendBtn.disabled = on;
-    quotaBtn.disabled = on;
-    spin.classList.toggle('hidden', !on);
+  function humanError(msg, data){
+    var m=String(msg||'');
+    if(/out of quota/i.test(m)) return 'Aaj ka free message khatam ho gaya. Kal naye IP/time par dobara try karo, ya apna Textbelt key daalo (Advanced panel).';
+    if(/whitelist/i.test(m)) return 'Textbelt ne is message ko block kiya — link ya blocked content hata do.';
+    if(/incomplete request/i.test(m)) return 'Request adhoori thi — number aur message dono bharo.';
+    if(/invalid/i.test(m)) return 'Number ya key invalid lag rahi hai: ' + m;
+    return m || ('HTTP error');
   }
 
   function sendSms(){
-    var num = fullNumber();
-    var text = (msgEl.value || '').trim();
-    var digits = num.replace(/\D/g,'');
+    var num=fullNumber(), text=(msgEl.value||'').trim(), digits=num.replace(/\D/g,'');
+    var p=providerEl.value;
 
-    if(digits.length < 8){
-      setStatus('err', 'Number valid nahi hai — country code ke saath kam se kam 8 digits chahiye.');
-      phoneEl.focus();
+    if(digits.length < 8){ setStatus('err','Number theek nahi — country code ke saath kam se kam 8 digits chahiye.'); phoneEl.focus(); return; }
+    if(!text){ setStatus('err','Message khali hai.'); msgEl.focus(); return; }
+    if(p === 'textbelt-free' && (usedToday() || quotaState === 'used')){
+      setStatus('err','Aaj ka free message pehle hi bhej diya hai. Kal dobara try karo, ya Advanced panel se apna Textbelt key daalo.');
       return;
     }
-    if(!text){
-      setStatus('err', 'Message khali hai.');
-      msgEl.focus();
-      return;
-    }
-    var p = providerEl.value;
+    if(p === 'textbelt-own' && !currentKey()){ setStatus('err','Is provider ke liye API key chahiye.'); keyEl.focus(); return; }
     if(p === 'fast2sms'){
-      var sid = (senderEl.value || '').trim().toUpperCase();
-      if(!/^[A-Z]{6}$/.test(sid)){
-        setStatus('err', 'Sender ID 6 letters ka hona chahiye (e.g. IXCDIS). Ye aapka DLT-approved header hona zaroori hai.');
-        senderEl.focus();
-        return;
-      }
-      if(p === 'fast2sms' && f2sRouteEl.value === 'dlt' && !(tplEl.value || '').trim()){
-        setStatus('err', 'DLT route ke liye template ID chahiye. Approved template ka ID daalo.');
-        tplEl.focus();
-        return;
-      }
-    }
-    if((p === 'textbelt-own') && !currentKey()){
-      setStatus('err', 'Is provider ke liye API key chahiye. Upar key field bharo.');
-      keyEl.focus();
-      return;
+      var sid=(senderEl.value||'').trim().toUpperCase();
+      if(!/^[A-Z]{6}$/.test(sid)){ setStatus('err','Sender ID 6 letters ka hona chahiye (e.g. IXCDIS), aur DLT-approved.'); senderEl.focus(); return; }
+      if(f2sRouteEl.value === 'dlt' && !(tplEl.value||'').trim()){ setStatus('err','DLT route ke liye template ID chahiye.'); tplEl.focus(); return; }
     }
 
-    var req = buildRequest();
-    var headers = Object.assign({}, req.headers);
-    if(req.auth){
-      headers['Authorization'] = 'Basic ' + btoa((gwUserEl.value || '') + ':' + (gwPassEl.value || ''));
-    }
+    var req=buildRequest(), headers=Object.assign({},req.headers);
+    if(req.auth) headers['Authorization']='Basic '+btoa((gwUserEl.value||'')+':'+(gwPassEl.value||''));
 
     sending(true);
-    setStatus('info', 'Request bhej raha hoon…');
+    setStatus('info','Bhej raha hoon…');
 
-    var ctrl = ('AbortController' in window) ? new AbortController() : null;
-    var timer = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 20000);
+    var ctrl=('AbortController' in window)?new AbortController():null;
+    var timer=setTimeout(function(){ if(ctrl) ctrl.abort(); },20000);
 
-    fetch(req.url, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(req.body),
-      signal: ctrl ? ctrl.signal : undefined
-    })
-    .then(function(res){
-      return res.text().then(function(txt){
-        var data;
-        try{ data = JSON.parse(txt); }catch(e){ data = { raw: txt }; }
-        return { status: res.status, data: data };
-      });
-    })
-    .then(function(r){
-      clearTimeout(timer);
-      var ok = r.status >= 200 && r.status < 300 && (r.data.success !== false);
-      if(ok){
-        var extra = (typeof r.data.quotaRemaining === 'number')
-          ? ' · quota left: ' + r.data.quotaRemaining : '';
-        setStatus('ok', 'SMS bhej diya → ' + esc(num) + extra +
-          '<pre>' + esc(JSON.stringify(r.data, null, 2)) + '</pre>');
-        addHist({ to: num, msg: text.slice(0,120), at: Date.now(), ok: true });
-        msgEl.value = '';
-        updateCounter();
-      }else{
-        var errMsg = r.data.error || r.data.message || ('HTTP ' + r.status);
-        setStatus('err', 'Fail: ' + esc(errMsg) +
-          '<pre>' + esc(JSON.stringify(r.data, null, 2)) + '</pre>');
-        addHist({ to: num, msg: text.slice(0,120), at: Date.now(), ok: false });
-      }
-    })
-    .catch(function(err){
-      clearTimeout(timer);
-      var reason = err && err.name === 'AbortError'
-        ? 'Request timeout (20s).'
-        : (err && err.message ? err.message : String(err));
-      setStatus('err',
-        'Network / CORS error: ' + esc(reason) +
-        '<pre>Possible reasons:\n' +
-        '· page file:// se khula hai → python3 -m http.server 8000 chalao\n' +
-        '· ad-blocker ya offline\n' +
-        '· gateway URL galat hai\n' +
-        '· free key ka daily quota khatam</pre>');
-    })
-    .then(function(){ sending(false); });
-  }
-
-  /* ---------- quota ---------- */
-  function checkQuota(){
-    var key = currentKey();
-    if(!key){
-      setStatus('err', 'Quota check ke liye pehle API key daalo.');
-      return;
-    }
-    setStatus('info', 'Quota check kar raha hoon…');
-    fetch('https://textbelt.com/quota/' + encodeURIComponent(key))
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if(typeof d.quotaRemaining === 'number'){
-          setStatus('ok', 'Remaining quota: <b>' + d.quotaRemaining + '</b>' +
-            '<pre>' + esc(JSON.stringify(d, null, 2)) + '</pre>');
+    fetch(req.url,{method:'POST',headers:headers,body:JSON.stringify(req.body),signal:ctrl?ctrl.signal:undefined})
+      .then(function(res){
+        return res.text().then(function(txt){
+          var d; try{ d=JSON.parse(txt); }catch(e){ d={raw:txt}; }
+          return {status:res.status, data:d};
+        });
+      })
+      .then(function(r){
+        clearTimeout(timer);
+        var ok = r.status>=200 && r.status<300 && r.data.success!==false;
+        if(ok){
+          if(p === 'textbelt-free'){ markUsed(); paintQuota(0); }
+          var q=(typeof r.data.quotaRemaining==='number')?' · quota left: '+r.data.quotaRemaining:'';
+          setStatus('ok','SMS nikal gaya → '+esc(num)+q+'<pre>'+esc(JSON.stringify(r.data,null,2))+'</pre>');
+          addHist({to:num, msg:text.slice(0,120), at:Date.now(), ok:true});
+          msgEl.value=''; updateCounter();
         }else{
-          setStatus('err', 'Quota response: <pre>' + esc(JSON.stringify(d, null, 2)) + '</pre>');
+          var errMsg = r.data.error || r.data.message || ('HTTP '+r.status);
+          setStatus('err', esc(humanError(errMsg, r.data))+'<pre>'+esc(JSON.stringify(r.data,null,2))+'</pre>');
+          addHist({to:num, msg:text.slice(0,120), at:Date.now(), ok:false});
+          if(/out of quota/i.test(String(errMsg))) paintQuota(0);
         }
       })
       .catch(function(err){
-        setStatus('err', 'Quota check fail: ' + esc(err.message || err) +
-          '<pre>Ye endpoint CORS block kar sakta hai — koi baat nahi, send phir bhi kaam karega.</pre>');
-      });
+        clearTimeout(timer);
+        var reason = (err && err.name==='AbortError') ? 'timeout (20s)' : ((err&&err.message)||String(err));
+        var extra='';
+        if(location.protocol === 'file:') extra='\n\nPage file:// se khula hai. Terminal me "node server.js" ya "python3 -m http.server 8000" chala ke localhost se kholo.';
+        setStatus('err','Network / CORS error: '+esc(reason)+extra+
+          '<pre>Possible reasons:\n· ad-blocker ya offline\n· free key ka daily quota khatam\n· proxy server band hai</pre>');
+      })
+      .then(function(){ sending(false); });
   }
 
-  /* ---------- wiring ---------- */
+  /* ---------------- wiring ---------------- */
   providerEl.addEventListener('change', syncProvider);
   f2sRouteEl.addEventListener('change', syncProvider);
-  [keyEl, gwUrlEl, gwUserEl, gwPassEl, phoneEl, ccEl, senderEl, tplEl, varsEl].forEach(function(el){
+  [keyEl,gwUrlEl,gwUserEl,gwPassEl,phoneEl,ccEl,senderEl,tplEl,varsEl].forEach(function(el){
     el.addEventListener('input', function(){ updatePreview(); saveSettings(); });
   });
   msgEl.addEventListener('input', updateCounter);
-  dryEl.addEventListener('change', function(){
-    dryWrap.classList.toggle('on', dryEl.checked);
-    updatePreview();
+  msgEl.addEventListener('keydown', function(e){
+    if((e.metaKey||e.ctrlKey) && e.key==='Enter'){ e.preventDefault(); sendSms(); }
   });
   sendBtn.addEventListener('click', sendSms);
-  quotaBtn.addEventListener('click', checkQuota);
-  $('clearHist').addEventListener('click', function(){
-    if(confirm('Poora delivery log delete karna hai?')){
-      saveHist([]);
-      renderHist();
-    }
-  });
-  Array.prototype.forEach.call(document.querySelectorAll('.chip'), function(chip){
-    chip.addEventListener('click', function(){
-      msgEl.value = chip.getAttribute('data-t');
-      updateCounter();
-      msgEl.focus();
+  refreshBtn.addEventListener('click', function(){ refreshQuota(false); });
+  Array.prototype.forEach.call(document.querySelectorAll('.chip'), function(c){
+    c.addEventListener('click', function(){
+      msgEl.value=c.getAttribute('data-t'); updateCounter(); msgEl.focus();
     });
   });
-  msgEl.addEventListener('keydown', function(e){
-    if((e.metaKey || e.ctrlKey) && e.key === 'Enter'){ e.preventDefault(); sendSms(); }
-  });
 
-  /* ---------- init ---------- */
+  /* ---------------- init ---------------- */
   loadSettings();
   syncProvider();
   updateCounter();
   renderHist();
+  refreshQuota(true);
 })();
 </script>
 </body>
