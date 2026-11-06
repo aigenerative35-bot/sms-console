@@ -216,6 +216,11 @@
         </select>
       </div>
 
+      <div class="actions" style="margin:0 0 16px">
+        <button class="btn btn--ghost" id="verifyBtn" type="button">Verify credentials</button>
+        <span class="hint" style="margin:0">bhejne se pehle key check karo</span>
+      </div>
+
       <div class="hidden" id="f-twilio">
         <details class="helpbox">
           <summary>Ye teen ID kahan se milengi?</summary>
@@ -267,6 +272,10 @@
 
       <div class="hidden" id="f-f2s">
         <div class="field">
+          <label class="lbl" for="f2skey">Fast2SMS API key</label>
+          <input class="mono" type="password" id="f2skey" placeholder="paste your key" autocomplete="off">
+        </div>
+        <div class="field">
           <label class="lbl" for="sender">Sender ID / DLT header</label>
           <input class="mono" type="text" id="sender" placeholder="IXCDIS" maxlength="6" style="text-transform:uppercase">
           <p class="hint">Phone par aise dikhega: <code id="senderPreview">BP-______-S</code></p>
@@ -306,6 +315,7 @@
   var providerEl=$('provider'), phoneEl=$('phone'), ccEl=$('cc'), msgEl=$('msg');
   var keyEl=$('apikey'), gwUrlEl=$('gwurl'), gwUserEl=$('gwuser'), gwPassEl=$('gwpass');
   var twSidEl=$('twsid'), twTokenEl=$('twtoken'), twFromEl=$('twfrom');
+  var f2sKeyEl=$('f2skey'), verifyBtn=$('verifyBtn');
   var senderEl=$('sender'), f2sRouteEl=$('f2sroute'), tplEl=$('tplid'), varsEl=$('vars');
   var sendBtn=$('send'), refreshBtn=$('refresh'), spin=$('spin'), statusEl=$('status');
   var quotaPill=$('quotaPill'), urlWarn=$('urlWarn');
@@ -329,6 +339,7 @@
       if(s.twsid) twSidEl.value=s.twsid;
       if(s.twtoken) twTokenEl.value=s.twtoken;
       if(s.twfrom) twFromEl.value=s.twfrom;
+      if(s.f2skey) f2sKeyEl.value=s.f2skey;
       if(s.sender) senderEl.value=s.sender;
       if(s.f2sroute) f2sRouteEl.value=s.f2sroute;
       if(s.tplid) tplEl.value=s.tplid;
@@ -340,7 +351,7 @@
       localStorage.setItem(LS_SET, JSON.stringify({
         provider:providerEl.value, cc:ccEl.value, apikey:keyEl.value,
         gwurl:gwUrlEl.value, gwuser:gwUserEl.value, gwpass:gwPassEl.value,
-        twsid:twSidEl.value, twtoken:twTokenEl.value, twfrom:twFromEl.value,
+        twsid:twSidEl.value, twtoken:twTokenEl.value, twfrom:twFromEl.value, f2skey:f2sKeyEl.value,
         sender:senderEl.value, f2sroute:f2sRouteEl.value, tplid:tplEl.value, vars:varsEl.value
       }));
     }catch(e){}
@@ -512,7 +523,8 @@
     if(p === 'fast2sms'){
       var route=f2sRouteEl.value;
       var body={provider:'fast2sms', numbers:num.replace(/^\+/,''), route:route,
-                sender_id:(senderEl.value||'').trim().toUpperCase()};
+                sender_id:(senderEl.value||'').trim().toUpperCase(),
+                apiKey:(f2sKeyEl.value||'').trim()};
       if(route === 'dlt'){ body.message=(tplEl.value||'').trim(); body.variables_values=(varsEl.value||'').trim(); }
       else { body.message=text; body.language='english'; }
       return {url:'/api/send', headers:{'Content-Type':'application/json'}, auth:false, body:body};
@@ -670,10 +682,41 @@
       .then(function(){ sending(false); });
   }
 
+  /* ---------------- verify credentials ---------------- */
+  function verifyCreds(){
+    var p = providerEl.value, body = null;
+    if(p === 'twilio'){
+      body = { provider:'twilio', accountSid:(twSidEl.value||'').trim(), authToken:(twTokenEl.value||'').trim() };
+    }else if(p === 'fast2sms'){
+      body = { provider:'fast2sms', apiKey:(f2sKeyEl.value||'').trim() };
+    }else{
+      setStatus('info','Verify sirf Twilio aur Fast2SMS ke liye hai. Textbelt key ke liye "Quota refresh" dabao.');
+      return;
+    }
+    setStatus('info','Credentials check kar raha hoon…');
+    fetch('/api/verify', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d && d.success){
+          if(d.provider === 'twilio'){
+            setStatus('ok','Key sahi hai · account: '+esc(d.account||'—')+' · status: '+esc(d.status||'—')+' · type: '+esc(d.type||'—')+
+              '<pre>Trial limits: sirf verified numbers, 100 SMS, 30 din.</pre>');
+          }else{
+            setStatus('ok','Fast2SMS key sahi hai<pre>'+esc(JSON.stringify(d.wallet,null,2))+'</pre>');
+          }
+        }else{
+          setStatus('err','Verify fail: '+esc((d&&d.error)||'unknown')+(d&&d.raw?'<pre>'+esc(JSON.stringify(d.raw,null,2))+'</pre>':''));
+        }
+      })
+      .catch(function(err){
+        setStatus('err','Verify call fail: '+esc(err.message||err)+'<pre>Proxy band hai? start.bat chalao aur http://localhost:8000 kholo.</pre>');
+      });
+  }
+
   /* ---------------- wiring ---------------- */
   providerEl.addEventListener('change', syncProvider);
   f2sRouteEl.addEventListener('change', syncProvider);
-  [keyEl,gwUrlEl,gwUserEl,gwPassEl,phoneEl,ccEl,senderEl,tplEl,varsEl,twSidEl,twTokenEl,twFromEl].forEach(function(el){
+  [keyEl,gwUrlEl,gwUserEl,gwPassEl,phoneEl,ccEl,senderEl,tplEl,varsEl,twSidEl,twTokenEl,twFromEl,f2sKeyEl].forEach(function(el){
     el.addEventListener('input', function(){ updatePreview(); saveSettings(); });
   });
   msgEl.addEventListener('input', updateCounter);
@@ -683,6 +726,7 @@
   sendBtn.addEventListener('click', sendSms);
   refreshBtn.addEventListener('click', function(){ refreshQuota(false); });
   deliverBtn.addEventListener('click', checkDelivery);
+  verifyBtn.addEventListener('click', verifyCreds);
   Array.prototype.forEach.call(document.querySelectorAll('.chip'), function(c){
     c.addEventListener('click', function(){
       msgEl.value=c.getAttribute('data-t'); updateCounter(); msgEl.focus();
