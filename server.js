@@ -274,6 +274,16 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const ip = req.socket.remoteAddress || 'unknown';
 
+  if (url.pathname === '/api/ping') {
+    return send(res, 200, {
+      ok: true,
+      proxy: true,
+      providers: ['gateway', 'twilio', 'fast2sms'],
+      fast2smsKey: !!FAST2SMS_KEY,
+      version: 3
+    });
+  }
+
   if (url.pathname === '/api/send') {
     if (req.method !== 'POST') return send(res, 405, { success: false, error: 'POST only' });
     if (throttled(ip)) return send(res, 429, { success: false, error: 'Thoda ruko — 1.2 second ka gap rakho.' });
